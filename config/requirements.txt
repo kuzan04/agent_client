@@ -1,0 +1,5 @@
+pyOpenSSL
+#pyCryptodome
+#pyCryptodomex
+mysql.connector
+cx_oracle

@@ -1,0 +1,383 @@
+import sys
+import socket
+import subprocess as sub
+import time
+import datetime
+import ftplib
+import os
+from pathlib import Path
+import posixpath
+import logging as log
+import logging.handlers as logHandle
+import mysql.connector
+import base64
+
+class SizeFile:
+    def __init__(self, n, s, d):
+        self.name = n
+        self.source = s
+        self.destination = d
+
+class taskSnif:
+    def __init__(self, config, mode, port, path, cpath, timeout=120, user="ftpuser", passwd="ftpuser"):
+        self.config = config
+        self._content = ["type", "status", "name", "host", "port", "detail", "cert"]
+        self._config = cpath
+        self._token = None
+        self._mode = int(mode)
+        self._host = config[3]
+        self._port = int(port)
+        self._path = path
+        self._format = 'utf-8'
+        self._time = timeout
+        self.username = user
+        self.password = passwd
+        self.name = None
+        self.time = None
+
+    def setupConfig(self):
+        try:
+            f=open(os.path.join(self._config, "init.conf"), "r").readlines()
+            for i in f:
+                if i.find("#") == -1:
+                    x=i.split("=")
+                    self.config.append(x[1].strip("\n"))
+        except Exception as e:
+            print(str(e))
+            sys.exit(1)
+        finally:
+            if len(self.config) < 6:
+                print("[Errno] Please check init file.")
+                sys.exit(1)
+
+    def stringToBase64(self, plantText):
+        return base64.b64encode(plantText)
+
+    def reverseToken(self, now):
+        content = ""
+        with open(f"{self._config}/init.conf", "r+") as lst:
+            lines = lst.readlines()
+            last = lines[-1]
+            oldStatus = lines[1]
+            for line in lines:
+                if line is last and line.find("#") == -1 and line is not oldStatus:
+                    x=line.split("=")
+                    content+=x[1].strip("\n")
+                elif line is not last and line.find('#') == -1 and line is not oldStatus:
+                    x=line.split("=")
+                    content+=x[1].strip("\n")+"&&&"
+                elif line is not last and line.find('#') == -1 and now != 0 and line is oldStatus:
+                    x=line.split("=")
+                    content+=x[1].strip("\n")+"&&&"
+                elif line is not last and line.find("#") == -1 and now == 0 and line is oldStatus:
+                    content+=str(now)+"&&&"
+            return self.stringToBase64(content.encode('utf-8')).decode('utf-8')
+
+    def checkToken(self, fetch, i):
+        if i == len(fetch):
+            return -1
+        elif self._token != fetch[i][-1]:
+            return self.checkToken(fetch, (i+1))
+        elif self._token == fetch[i][-1]:
+            return fetch[i]
+
+    def _listC(self, f, detail):
+        for i,j in zip(self._content, detail):
+            f.write(f"{i}={j}\n")
+
+    def _update(self, old, now, i):
+        if i == (len(old)+len(now))/2:
+            return False
+        elif i == 1 and old[i] == int(now[i]):
+            return self._update(old, now, (i+1))
+        elif i == 1 and old[i] != int(now[i]):
+            return True
+        elif i > 1 or i == 0 and old[i] != now[i]:
+            return True
+        elif i > 1 or i == 0 and old[i] == now[i]:
+            return self._update(old, now, (i+1))
+
+    def _updateFile(self, new, ip, port):
+        new.insert(3, ip), new.insert(-1, port)
+        if "AG1" in new or "AG2" in new or "AG3" in new or "AG4" in new:
+            f=open(f"{self._config}/init.conf", "w+")
+            self._listC(f, new)
+            f.close()
+
+    def tcpDump(self, p):
+        cnow = self.config
+        ip, port = cnow.pop(3), cnow.pop(-2)
+        if self._mode == 0:
+            for row in iter(p.stdout.readline, b''):
+                conn = mysql.connector.connect(
+                    host="127.0.0.1",
+                    user="root",
+                    password="P@ssw0rd",
+                    database="DOL_PDPA",
+                    auth_plugin="mysql_native_password"
+                )
+                cursor = conn.cursor()
+                cursor.execute('SELECT pas.code, pam.agm_status, pam.agm_name, pam.config_detail, pam.agm_token FROM TB_TR_PDPA_AGENT_MANAGE as pam JOIN TB_TR_PDPA_AGENT_STORE as pas ON pam.ags_id = pas.ags_id;')
+                commit = cursor.fetchall()
+                if not self._token and int(self.config[1]) == 0:
+                    self._token = self.reverseToken(-1)
+                elif not self._token and int(self.config[1]) == 1:
+                    self._token = self.reverseToken(0)
+                else:
+                    rs = self.checkToken(commit, 0)
+                    if rs == -1:
+                        print("[Errno] Client not match from manage.")
+                        sys.exit(1)
+                    else:
+                        rs = list(rs)
+                        rs.pop()
+                        if self._update(rs, cnow, 0) == False and rs[1] == 1:
+                            print(-1)
+                        elif self._update(rs, cnow, 0) == True and rs[1] == 0:
+                            old = cnow
+                            try:
+                                self._updateFile(rs, ip, port)
+                            except KeyboardInterrupt:
+                                self._updateFile(old, ip, port)
+                            finally:
+                                self.config = []
+                                self.setupConfig()
+                        elif self._update(rs, cnow, 0) == True and rs[1] == 1:
+                            self._updateFile(rs, ip, port)
+                            self.config = []
+                            self.setupConfig()
+                            self.writeSniff(row.rstrip())
+                            self.sendFTP()
+                        else:
+                            pass
+        elif self._mode == 1:
+            for row in iter(p.stdout.readline, b''):
+                conn = mysql.connector.connect(
+                    host="127.0.0.1",
+                    user="root",
+                    password="P@ssw0rd",
+                    database="DOL_PDPA",
+                    auth_plugin="mysql_native_password"
+                )
+                cursor = conn.cursor()
+                cursor.execute('SELECT pas.code, pam.agm_status, pam.agm_name, pam.config_detail, pam.agm_token FROM TB_TR_PDPA_AGENT_MANAGE as pam JOIN TB_TR_PDPA_AGENT_STORE as pas ON pam.ags_id = pas.ags_id;')
+                commit = cursor.fetchall()
+                if not self._token and self._status == 0:
+                    self._token = self.reverseToken(-1)
+                elif not self._token and self._status == 1:
+                    self._token = self.reverseToken(0)
+                else:
+                    rs = self.checkToken(commit, 0)
+                    if rs == -1:
+                        print("[Errno] Client not match from manage.")
+                        sys.exit(1)
+                    else:
+                        rs = list(rs)
+                        rs.pop()
+                        if self._update(rs, cnow, 0) == False and rs[1] == 1:
+                            print(-1)
+                        elif self._update(rs, cnow, 0) == True and rs[1] == 0:
+                            old = cnow
+                            try:
+                                self._updateFile(rs, ip, port)
+                            except KeyboardInterrupt:
+                                self._updateFile(old, ip, port)
+                            finally:
+                                self.config = []
+                                self.setupConfig()
+                        elif self._update(rs, cnow, 0) == True and rs[1] == 1:
+                            self._updateFile(rs, ip, port)
+                            self.config = []
+                            self.setupConfig()
+                            self.sendSyslog(row.rstrip())
+        else:
+            print('[ERROR] tcpDump() Please check config file line 1.')
+            sys.exit(1)
+
+    def successFile(self):
+        iter_files=sorted(Path(self._path).iterdir(), key=os.path.getmtime)
+        files=[i.name for i in iter_files]
+        if len(files) >  1 and '.DS_Store' in files:
+            files.remove('.DS_Store')
+            if os.path.exists(os.path.join(self._path, files[0])):
+                os.remove(os.path.join(self._path, files[0]))
+            else:
+                return -1
+        elif len(files) > 1 and '.DS_Store' not in files:
+            if os.path.exists(os.path.join(self._path, files[0])):
+                os.remove(os.path.join(self._path, files[0]))
+            else:
+                return -1
+
+    def writeSniff(self, b):
+        date=str(datetime.datetime.now()).replace(" ", ",").split(',')
+        fulltime=date[-1].split('.')
+        date.pop(), fulltime.pop()
+        hour=int(fulltime[0].split(":")[0])
+        # Check minutes => int(time[0].split(":")[-2])
+        # Check hours => int(time[0].split(":")[0])
+        if hour < 24 and hour == self.time:
+            n=open(self.name, 'a+')
+            n.write(b.decode(self._format)+"\n")
+            n.close()
+        else:
+            self.successFile()
+            self.name = os.path.join(self._path, f"{self._host},{hour}:00,{date[-1]}.snf")
+            n=open(self.name, 'a+')
+            n.write(b.decode(self._format)+"\n")
+            n.close()
+            self.time=hour
+
+    def checkList(self, a0, a1, i, j):
+        if i == len(a0):
+            return a0[(i-1)]
+        elif j == len(a1):
+            return self.checkList(a0, a1, (i+1), j)
+        elif a0[i] != a1[j]:
+            return self.checkList(a0, a1, i, (j+1))
+        elif a0[i] == a1[j]:
+            return 0
+
+    def checkArray(self, a0, a1, i, j):
+        if i == len(a0):
+            return -1
+        elif j == len(a1):
+            return self.checkArray(a0,a1,(i+1),j)
+        elif a0[i] != a1[j]:
+            return self.checkArray(a0,a1,i,(j+1))
+        elif a0[i] == a1[j]:
+            return j
+
+    def findLength(self, l, ftp, s):
+        if l[-1] == s:
+            sub0=os.path.getsize(os.path.join(self._path, l[-1]))
+            ftp.sendcmd('TYPE I') # Switch to Binary
+            sub1=ftp.size(s)
+            return SizeFile(l[-1], sub0, sub1)
+        else:
+            return 0
+
+    def checkLength(self, o):
+        if o.source == o.destination:
+            return 0
+        elif o.source != o.destination:
+            return 1
+
+    def convertNoneType(self, f):
+        l=[]
+        for i in f:
+            i = i.split(' ')
+            if i[-1].find('.DS_Store'):
+                l.append(i[-1])
+        return l
+
+    def createDirectory(self, files, i):
+        if i == len(files):
+            return 0
+        elif files[i] != self._host:
+            return self.createDirectory(files, (i+1))
+        elif files[i] == self._host:
+            return 1
+
+    def convertSetToList(self, f):
+        rs=[]
+        for n, facts in f:
+            rs.append(n)
+        return rs
+
+    def sendFTP(self):
+        try:
+            ftp=ftplib.FTP_TLS()
+            ftp.connect(self._host, self._port, self._time)
+            ftp.login(self.username, self.password)
+            ftp.prot_p()
+            ftp_directory = []
+            ftp.dir(ftp_directory.append)
+            ftp_directory = self.convertNoneType(ftp_directory)
+            local_files = os.listdir(self._path)
+            if '.DS_Store' in local_files and self.createDirectory(ftp_directory, 0) == 0:
+                local_files.remove('.DS_Store')
+                ftp.mkd(self._host)
+                ftp.cwd(self._host)
+                ftp_files = self.convertSetToList(ftp.mlsd())
+                if len(ftp_files) == 0 and self._host in local_files:
+                    f = open(os.path.join(self._path, local_files[local_files.index(self._host)]),'rb')
+                    dest_path=f'/{self._host}/{local_files[local_files.index(self._host)]}'
+                    ftp.storbinary(f'STOR {dest_path}', f)
+                    f.close()
+                else:
+                    pass
+            elif '.DS_Store' not in local_files and self.createDirectory(ftp_directory, 0) == 0:
+                ftp.mkd(self._host)
+                ftp.cwd(self._host)
+                ftp_files = self.convertSetToList(ftp.mlsd())
+                if len(ftp_files) == 0 and self._host in local_files:
+                    f=open(os.path.join(self._path, local_files[local_files.index(self._host)]),'rb')
+                    dest_path=f'/{self._host}/{local_files[local_files.index(self._host)]}'
+                    ftp.storbinary(f'STOR {dest_path}', f)
+                    f.close()
+                else:
+                    pass
+            elif '.DS_Store' not in local_files and self.createDirectory(ftp_directory, 0) == 1:
+                ftp.cwd(self._host)
+                ftp_files = self.convertSetToList(ftp.mlsd())
+                rs = self.checkList(local_files, ftp_files, 0, 0)
+                if rs != 0:
+                    f=open(os.path.join(self._path, rs),'rb')
+                    dest_path=f'/{self._host}/{rs}'
+                    ftp.storbinary(f'STOR {dest_path}', f)
+                    f.close()
+                else:
+                    rs1 = self.findLength(local_files, ftp, ftp_files[self.checkArray(local_files, ftp_files, 0, 0)])
+                    ftp.sendcmd('TYPE A') # Switch backto ascii
+                    if isinstance(rs1, SizeFile):
+                        if self.checkLength(rs1) == 1:
+                            f=open(os.path.join(self._path, local_files[-1]),'rb')
+                            dest_path=f'/{self._host}/{local_files[-1]}'
+                            ftp.storbinary(f'STOR {dest_path}', f)
+                            f.close()
+                        else:
+                            f.close()
+            # Exit FTP
+            ftp.quit()
+        except Exception as e:
+            err=str(e).split(" ")
+            if err[0] == 'timed' or err[1] == 'out':
+                print(str(e))
+                print('[Errno] sendFTP() Please check file config.')
+                sys.exit(1)
+            else:
+                err=err[1].replace("]","")
+                if int(err) != 49:
+                    print(str(e))
+                    print('[Errno] sendFTP() Please check file config.')
+                    sys.exit(1)
+
+    def sendSyslog(self, m):
+        try:
+            logger=log.getLogger()
+            logger.setLevel(log.INFO) # CRITICAL = 50, ERROR = 40, WARNING = 30, INFO = 20, DEBUG = 10, NOTSET = 0
+            handler = logHandle.SysLogHandler(address = (self._host, self._port), socktype=socket.SOCK_DGRAM)
+            logger.addHandler(handler)
+            logger.info(m)
+            logger.removeHandler(handler)
+            handler.close()
+            log.shutdown()
+        except Exception as e:
+            print(str(e))
+            sys.exit(1)
+
+    def run(self):
+        try:
+            if self._mode == 0 or self._mode == 1:
+                process = sub.Popen(('sudo', 'tcpdump', '-l'), stdout=sub.PIPE)
+                self.tcpDump(process)
+            else:
+                print("[Errno] OS not support, Please check informant on http://alltra.con or contact develop alltraenterprise@gmailcom")
+                sys.exit(1)
+        except Exception as e:
+            print(str(e))
+            sys.exit(1)
+        except KeyboardInterrupt:
+            print("\nCaught keyboard interrupt, exiting")
+            sys.exit(1)
