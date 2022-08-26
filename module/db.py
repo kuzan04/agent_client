@@ -30,7 +30,7 @@ class dbCheck:
             columns=table[-1]
             cursor.execute(f"SELECT {columns} FROM {table[0]}")
             result=list(cursor.fetchall())
-            self.message = f"{self.code}#{self.name}|||{table[0]}|||{table[1]}|||{str(result)}"
+            self.message.append(f"{self.code}#{self.name}|||{table[0]}|||{table[1]}|||{str(result)}")
         elif int(self._type) == 0: # Hold oracledb
             pass
         else:
