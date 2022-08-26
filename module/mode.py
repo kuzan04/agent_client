@@ -188,5 +188,8 @@ class startTask:
         c = connect.SSLClient( self.config[3], int(self.config[-2]), client_cert, client_key )
         c.connect()
         for i in msg:
-            c.send(i)
+            if i is not None:
+                c.send(i)
+            else:
+                pass
         c.close()

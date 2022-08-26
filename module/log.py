@@ -15,7 +15,7 @@ class LogHash0:
         self.name = name
         self.message = []
 
-    def sha256sum(filename):
+    def sha256sum(self, filename):
         h = hashlib.sha256()
         b = bytearray(128*1024)
         mv = memoryview(b)
@@ -23,7 +23,7 @@ class LogHash0:
             with open(filename, 'rb', buffering=0) as f:
                 for n in iter(lambda : f.readinto(mv), 0):
                     h.update(mv[:n])
-                    return h.hexdigest()
+                return h.hexdigest()
         except Exception as e:
             print(str(e))
             sys.exit(1)
@@ -31,14 +31,13 @@ class LogHash0:
     def checkLog(self, _path):
         _, _, filenames = next(walk(_path), (None, None, []))
         for l in filenames:
-            print(l)
             fl = open(f"{_path+l}",'rb')
             le = len(fl.readlines())
-            print(le)
+            fl.close()
             time.sleep(2)
             fl1 = open(f"{_path+l}",'rb')
             nle = len(fl1.readlines())
-            print(nle)
+            fl1.close()
             if nle > le:
                 h = self.sha256sum(f"{_path+l}")
                 self.message.append(f"{self.code}#{self.name}|||{socket.gethostname()}|||{platform.system()} {platform.release()}|||{_path}|||{l}|||{str(nle)}|||{h}")
