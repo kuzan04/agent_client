@@ -4,7 +4,7 @@ import ssl
 class SSLClient:
     def __init__ (self, server_host, server_port, client_cert, client_key):
         self.server_host = server_host
-        self.server_port = server_port
+        self.server_port = int(server_port)
         #self.sni_hostname = sni_hostname
         self._context = ssl.SSLContext()
         self._context.load_cert_chain(client_cert, client_key)

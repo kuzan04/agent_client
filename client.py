@@ -15,14 +15,18 @@ from module import cert, mode, connect, sniffer
 if __name__ == "__main__":
     __location__ = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
     __config__ = ""
+    __ssl__ = []
     if "config" in os.listdir(__location__):
         __config__ = os.path.join(__location__, "config")
+        if "ssl" in os.listdir(__config__):
+            for i in os.listdir(os.path.join(__config__, "ssl")):
+                __ssl__.append(os.path.join(__config__, f"ssl/{i}"))
     else:
         print("[Errno] Please check directory config missing.")
         sys.exit(1)
     DISCONNECT_MESSAGE = "!DISCONNECT"
     while True:
-        process = mode.startTask(__location__, __config__)._check()
+        process = mode.startTask(__location__, __config__, __ssl__)._check()
         if isinstance(process, str):
             config, prepared = eval(process)[0], eval(process)[1]
             if int(prepared[0]) == 0: # FTP
@@ -31,11 +35,3 @@ if __name__ == "__main__":
                 sniffer.taskSnif(config, prepared[0], 514, prepared[-1], __config__).run()
             else:
                 pass
-        else:
-            print(1)
-    '''c = client.SSLClient(
-        server_host, server_port, server_sni_hostname, client_cert, client_key
-    )
-    c.connect()
-    c.send("This is a test message!")
-    c.close()'''

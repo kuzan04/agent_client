@@ -4,10 +4,10 @@ import base64
 import binascii
 import sys
 import mysql.connector
-from module import log, file, db
+from module import log, file, db, connect
 
 class startTask:
-    def __init__(self, default, config):
+    def __init__(self, default, config, ssl):
         self._content = ["type", "status", "name", "host", "port", "detail", "cert"]
         self._path = default
         self._config = config
@@ -15,6 +15,7 @@ class startTask:
         self._start = True
         self.config = []
         self._token = ""
+        self._ssl = ssl
 
     def is_base64(self, s):
         try:
@@ -165,14 +166,14 @@ class startTask:
                         self.setupConfig()
                         if self.config[0] == "AG1":
                             result = log.LogHash0(self.config[-1].split(","), self.config[0], self.config[2]).run()
-                            return result
+                            self._connect(result)
                         elif self.config[0] == "AG2":
-                            result = file.dirFile(self.config[-1].split(","), self.config[0], self.config[2], self.config[3])
-                            return result
+                            result = file.dirFile(self.config[-1].split(","), self.config[0], self.config[2], self.config[3]).run()
+                            self._connect(result)
                         elif self.config[0] == "AG3":
                             prepared = self.config[-1].split("&")
                             result = db.dbCheck(prepared[0], self.config[0], self.config[2], prepared[1], prepared[2], prepared[3], prepared[4], prepared[5:]).run()
-                            return result
+                            self._connect(result)
                         elif self.config[0] == "AG4":
                             prepared = self.config[-1].split(",")
                             return f"{self.config},{prepared}"
@@ -180,3 +181,12 @@ class startTask:
                             print("[Errno] Type error.")
                     else:
                         pass
+
+    def _connect(self, msg):
+        client_cert = [x for x in self._ssl if ".crt" in x.split("/")[-1]].pop()
+        client_key = [x for x in self._ssl if ".key" in x.split("/")[-1]].pop()
+        c = connect.SSLClient( self.config[3], int(self.config[-2]), client_cert, client_key )
+        c.connect()
+        for i in msg:
+            c.send(i)
+        c.close()
