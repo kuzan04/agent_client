@@ -295,8 +295,11 @@ class taskSnif:
             ftp.dir(ftp_directory.append)
             ftp_directory = self.convertNoneType(ftp_directory)
             local_files = os.listdir(self._path)
-            if '.DS_Store' in local_files and self.createDirectory(ftp_directory, 0) == 0:
+            if '.DS_Store' in local_files:
                 local_files.remove('.DS_Store')
+            else:
+                pass
+            if self.createDirectory(ftp_directory, 0) == 0:
                 ftp.mkd(self._host)
                 ftp.cwd(self._host)
                 ftp_files = self.convertSetToList(ftp.mlsd())
@@ -307,18 +310,7 @@ class taskSnif:
                     f.close()
                 else:
                     pass
-            elif '.DS_Store' not in local_files and self.createDirectory(ftp_directory, 0) == 0:
-                ftp.mkd(self._host)
-                ftp.cwd(self._host)
-                ftp_files = self.convertSetToList(ftp.mlsd())
-                if len(ftp_files) == 0 and self._host in local_files:
-                    f=open(os.path.join(self._path, local_files[local_files.index(self._host)]),'rb')
-                    dest_path=f'/{self._host}/{local_files[local_files.index(self._host)]}'
-                    ftp.storbinary(f'STOR {dest_path}', f)
-                    f.close()
-                else:
-                    pass
-            elif '.DS_Store' not in local_files and self.createDirectory(ftp_directory, 0) == 1:
+            elif self.createDirectory(ftp_directory, 0) == 1:
                 ftp.cwd(self._host)
                 ftp_files = self.convertSetToList(ftp.mlsd())
                 rs = self.checkList(local_files, ftp_files, 0, 0)
