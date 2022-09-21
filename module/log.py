@@ -3,17 +3,19 @@ import socket
 import time
 import hashlib
 import platform
+import os
 from os import walk
 from os import listdir
 from os.path import isfile, join
 from datetime import datetime
 
 class LogHash0:
-    def __init__(self, path, code, name):
+    def __init__(self, path, code, name, store):
         self._path = path
         self.code = code
         self.name = name
         self.message = []
+        self._store = store
 
     def sha256sum(self, filename):
         h = hashlib.sha256()
@@ -55,24 +57,45 @@ class LogHash0:
             sys.exit(1)
 
     def checkLog(self, _path):
-        _, _, filenames = next(walk(_path), (None, None, []))
-        for l in filenames:
-            fl = open(f"{_path+l}",'rb')
-            le = len(fl.readlines())
-            fl.close()
-            time.sleep(5)
-            fl1 = open(f"{_path+l}",'rb')
-            nle = len(fl1.readlines())
-            fl1.close()
-            if nle > le:
-                sha256 = self.sha256sum(f"{_path+l}")
-                md5 = self.md5sum(f"{_path+l}")
-                sha1 = self.sha1sum(f"{_path+l}")
-                self.message.append(f"{self.code}#{self.name}|||{socket.gethostname()}|||{platform.system()} {platform.release()}|||{_path}|||{l}|||{str(nle)}|||{sha256}|||{md5}|||{sha1}")
+        if len(os.listdir(_path)) == 0:
+            time.sleep(10)
+            if len(os.listdir(_path)) > 0:
+                _, _, filename = next(walk(_path), (None, None, []))
+                contents_len = len(open(f"{_path+filename[0]}", "rb").readlines())
+                sha256 = self.sha256sum(f"{_path+filename[0]}")
+                md5 = self.md5sum(f"{_path+filename[0]}")
+                sha1 = self.sha1sum(f"{_path+filename[0]}")
+                self.message.append(f"{self.code}#{self.name}|||{socket.gethostname()}|||{platform.system()} {platform.release()}|||{_path}|||{filename[0]}|||{str(contents_len)}|||{sha256}|||{md5}|||{sha1}")
+                self._store[_path] = filename
             else:
-                self.message.append(None)
+                pass
+        else:
+            _, _, filenames = next(walk(_path), (None, None, []))
+            for l in filenames:
+                if l in self._store[_path]:
+                    fl = open(f"{_path+l}",'rb')
+                    le = len(fl.readlines())
+                    fl.close()
+                    time.sleep(5)
+                    fl1 = open(f"{_path+l}",'rb')
+                    nle = len(fl1.readlines())
+                    fl1.close()
+                    if nle > le:
+                        sha256 = self.sha256sum(f"{_path+l}")
+                        md5 = self.md5sum(f"{_path+l}")
+                        sha1 = self.sha1sum(f"{_path+l}")
+                        self.message.append(f"{self.code}#{self.name}|||{socket.gethostname()}|||{platform.system()} {platform.release()}|||{_path}|||{l}|||{str(nle)}|||{sha256}|||{md5}|||{sha1}")
+                    else:
+                        self.message.append(None)
+                else:
+                    contents_len = len(open(f"{_path+l}", "rb").readlines())
+                    sha256 = self.sha256sum(f"{_path+l}")
+                    md5 = self.md5sum(f"{_path+l}")
+                    sha1 = self.sha1sum(f"{_path+l}")
+                    self.message.append(f"{self.code}#{self.name}|||{socket.gethostname()}|||{platform.system()} {platform.release()}|||{_path}|||{l}|||{str(contents_len)}|||{sha256}|||{md5}|||{sha1}")
+                    self._store[_path].append(l)
 
     def run(self):
         for i in self._path:
             self.checkLog(i)
-        return self.message
+        return self.message, self._store
