@@ -46,7 +46,7 @@ class dirFile:
                 name_file = f"{inform}{l}"
                 content_file = open(os.path.join(path, l), 'rb')
                 size = os.path.getsize(os.path.join(path, l))
-                if str(self._port)[-2:] == 21:
+                if str(self._port)[-2:] == "21":
                     ftp=ftplib.FTP_TLS()
                     ftp.connect(self._ip, self._port)
                     ftp.login(self.user, self.passwd)
@@ -59,7 +59,7 @@ class dirFile:
                     content_file.close()
                     ftp.quit()
                     self.message.append(f"{self.code}#{self.name}|||{socket.gethostname()}|||{platform.system()}-{platform.release()}|||{path}|||{l}|||{size}|||{inform}")
-                elif str(self._port)[-2:] == 22:
+                elif str(self._port)[-2:] == "22":
                     with pysftp.Connection(self._ip, username=self.user, password=self.passwd) as sftp:
                         sftp.cd('/')
                         ftp.put(os.path.join(path, l), os.path.join(path, name_file))
