@@ -2,7 +2,7 @@ import sys
 import socket
 import os
 import time
-import pysftp
+#import pysftp
 import ftplib
 from os import walk
 from os import listdir
@@ -60,11 +60,12 @@ class dirFile:
                     ftp.quit()
                     self.message.append(f"{self.code}#{self.name}|||{socket.gethostname()}|||{platform.system()}-{platform.release()}|||{path}|||{l}|||{size}|||{inform}")
                 elif str(self._port)[-2:] == "22":
-                    with pysftp.Connection(self._ip, username=self.user, password=self.passwd) as sftp:
+                    pass
+                    '''with pysftp.Connection(self._ip, username=self.user, password=self.passwd) as sftp:
                         sftp.cd('/')
                         ftp.put(os.path.join(path, l), os.path.join(path, name_file))
                         sftp.close()
-                        self.message.append(f"{self.code}#{self.name}|||{socket.gethostname()}|||{platform.system()}-{platform.release()}|||{path}|||{l}|||{size}|||{inform}")
+                        self.message.append(f"{self.code}#{self.name}|||{socket.gethostname()}|||{platform.system()}-{platform.release()}|||{path}|||{l}|||{size}|||{inform}")'''
                 else:
                     pass
             else:
