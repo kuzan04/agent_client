@@ -13,7 +13,7 @@ import platform
 import re
 
 class dirFile:
-    def __init__(self, path, code, name, ip, port=1021, username="ftpuser", password="ftpuser", own=None, group=None):
+    def __init__(self, path, code, name, ip, port=21, username="ftpuser", password="ftpuser", own=None, group=None):
         self._path = path
         self.code = code
         self.name = name
