@@ -2,6 +2,7 @@ import sys
 import socket
 import os
 import time
+import pysftp
 import ftplib
 from os import walk
 from os import listdir
@@ -42,20 +43,29 @@ class dirFile:
         _, _, filenames = next(walk(path), (None, None, []))
         for l in filenames:
             if l != ".DS_Store":
-                ftp=ftplib.FTP_TLS()
-                ftp.connect(self._ip, self._port)
-                ftp.login(self.user, self.passwd)
-                ftp.prot_p()
-                ftp.cwd('/')
-                #all_file_ftp = []
-                #ftp.dir(all_file_ftp.append)
-                name_file = f"{inform}{l}"
-                #all_file_ftp = self.convertNoneType(all_file_ftp)
-                content_file = open(os.path.join(path, l), 'rb')
-                ftp.storbinary('STOR '+ name_file, content_file)
-                content_file.close()
-                ftp.quit()
-                self.message.append(f"{self.code}#{self.name}|||{socket.gethostname()}|||{platform.system()}-{platform.release()}|||{path}|||{l}|||{inform}")
+                if self._port[-2:] == 21:
+                    ftp=ftplib.FTP_TLS()
+                    ftp.connect(self._ip, self._port)
+                    ftp.login(self.user, self.passwd)
+                    ftp.prot_p()
+                    ftp.cwd('/')
+                    #all_file_ftp = []
+                    #ftp.dir(all_file_ftp.append)
+                    name_file = f"{inform}{l}"
+                    #all_file_ftp = self.convertNoneType(all_file_ftp)
+                    content_file = open(os.path.join(path, l), 'rb')
+                    ftp.storbinary('STOR '+ name_file, content_file)
+                    content_file.close()
+                    ftp.quit()
+                    self.message.append(f"{self.code}#{self.name}|||{socket.gethostname()}|||{platform.system()}-{platform.release()}|||{path}|||{l}|||{inform}")
+                elif self._port[-2:] == 22:
+                    with pysftp.Connection(self._ip, username=self.user, password=self.passwd) as sftp:
+                        sftp.cd('/')
+                        name_file = f"{inform}{l}"
+                        ftp.put(os.path.join(path, l), os.path.join(path, name_file))
+                        sftp.close()
+                else:
+                    pass
             else:
                 pass
 
