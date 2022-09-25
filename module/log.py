@@ -63,14 +63,11 @@ class LogHash0:
             if i == size:
                 return -1
             elif _old[0] == new[0] and _old[1] == new[1]:
-                return _old[0]
+                return True
             else:
-                self.fileMatch(old, new, size, (i+1))
+                return self.fileMatch(old, new, size, (i+1))
         except IndexError:
-            if i == size:
-                return -1
-            else:
-                return 1
+            return False
 
     def checkLog(self, _path):
         if len(os.listdir(_path)) == 0:
@@ -128,15 +125,13 @@ class LogHash0:
                             self.message.append(f"{self.code}#{self.name}|||{socket.gethostname()}|||{platform.system()} {platform.release()}|||{_path}|||{l}|||{str(nle)}|||{sha256}|||{md5}|||{sha1}")
                         else:
                             self.message.append(None)
-                    elif check == 1:
+                    else:
                         contents_len = len(open(f"{_path+l}", "rb").readlines())
                         sha256 = self.sha256sum(f"{_path+l}")
                         md5 = self.md5sum(f"{_path+l}")
                         sha1 = self.sha1sum(f"{_path+l}")
                         self.message.append(f"{self.code}#{self.name}|||{socket.gethostname()}|||{platform.system()} {platform.release()}|||{_path}|||{l}|||{str(contents_len)}|||{sha256}|||{md5}|||{sha1}")
                         self._store[_path].append(l)
-                    else:
-                        pass
 
     def run(self):
         for i in self._path:
