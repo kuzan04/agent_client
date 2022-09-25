@@ -72,6 +72,11 @@ class LogHash0:
             else:
                 return self.fileMatch(old, new, size, (i+1))
         except IndexError:
+            if len(self._store) == 0:
+                self._store[new[0]] = []
+                self._store[new[0]].append(new[1])
+            else:
+                self._store[new[0]].append(new[1])
             return False
 
     def checkLog(self, _path):
@@ -137,7 +142,6 @@ class LogHash0:
                         md5 = self.md5sum(f"{_path+l}")
                         sha1 = self.sha1sum(f"{_path+l}")
                         self.message.append(f"{self.code}#{self.name}|||{socket.gethostname()}|||{platform.system()} {platform.release()}|||{_path}|||{l}|||{str(contents_len)}|||{sha256}|||{md5}|||{sha1}")
-                        self._store[_path].append(l)
 
     def run(self):
         for i in self._path:
