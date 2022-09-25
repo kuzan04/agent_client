@@ -166,7 +166,9 @@ class startTask:
                         self.config = []
                         self.setupConfig()
                         if self.config[0] == "AG1":
-                            result, store = log.LogHash0(self.config[-1].split(","), self.config[0], self.config[2], self._store).run()
+                            manage.execute('SELECT path, name_file FROM TB_TR_PDPA_AGENT_LOG0_HASH;')
+                            backup = manage.fetchall()
+                            result, store = log.LogHash0(self.config[-1].split(","), self.config[0], self.config[2], self._store, backup).run()
                             self._store = store
                             self._connect(result, "AG1")
                         elif self.config[0] == "AG2":
