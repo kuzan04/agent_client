@@ -68,7 +68,7 @@ class LogHash0:
                     self._store[_old[0]].append(_old[1])
                 else:
                     self._store[_old[0]].append(_old[1])
-                return True
+                return _old[1]
             else:
                 return self.fileMatch(old, new, size, (i+1))
         except IndexError:
