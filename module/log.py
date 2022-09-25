@@ -57,7 +57,7 @@ class LogHash0:
             print(str(e))
             sys.exit(1)
 
-    def fileMatch(self, old, new, i, size):
+    def fileMatch(self, old, new, size, i):
         try:
             _old = list(old[i])
             if i == size:
@@ -65,7 +65,7 @@ class LogHash0:
             elif _old[0] == new[0] and _old[1] == new[1]:
                 return _old[0]
             else:
-                self.fileMatch(old, new, (i+1))
+                self.fileMatch(old, new, size, (i+1))
         except IndexError:
             if i == size:
                 return -1
