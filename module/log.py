@@ -112,7 +112,7 @@ class LogHash0:
                         self.message.append(f"{self.code}#{self.name}|||{socket.gethostname()}|||{platform.system()} {platform.release()}|||{_path}|||{l}|||{str(contents_len)}|||{sha256}|||{md5}|||{sha1}")
                         self._store[_path].append(l)
                 except KeyError:
-                    check = self.fileMatch(self._backup, [_path, l], len(_path), 0)
+                    check = self.fileMatch(self._backup, [_path, l], len(filenames), 0)
                     if check == True:
                         fl = open(f"{_path+l}",'rb')
                         le = len(fl.readlines())
