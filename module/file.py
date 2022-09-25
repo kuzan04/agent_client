@@ -49,17 +49,22 @@ class dirFile:
                 if str(self._port)[-2:] == "21":
                     ftp=ftplib.FTP_TLS()
                     ftp.connect(self._ip, self._port)
-                    #ftp.login(self.user, self.passwd)
-                    ftp.sendcmd(f"USER {self.user}")
-                    ftp.sendcmd(f"PASS {self.passwd}")
-                    #ftp.prot_p()
-                    #ftp.cwd('/')
-                    ftp.cwd("/home/ftpuser/")
-                    #all_file_ftp = []
-                    #ftp.dir(all_file_ftp.append)
-                    #all_file_ftp = self.convertNoneType(all_file_ftp)
-                    #ftp.storbinary('STOR '+ name_file, content_file)
-                    ftp.storbinary(f'STOR {name_file}', content_file)
+                    try:
+                        ftp.login(self.user, self.passwd)
+                        ftp.prot_p()
+                        ftp.cwd('/')
+                        #all_file_ftp = []
+                        #ftp.dir(all_file_ftp.append)
+                        #all_file_ftp = self.convertNoneType(all_file_ftp)
+                        ftp.storbinary('STOR '+ name_file, content_file)
+                    except ftplib.all_errors as e:
+                        # errCode = str(e).split(None, 1)[0] # Type string
+                        # 530 Login authentication failed.
+                        ftp.sendcmd(f"USER {self.user}")
+                        ftp.sendcmd(f"PASS {self.passwd}")
+                        # 553 Could not create file.
+                        ftp.cwd(f"/home/{self.user}/")
+                        ftp.storbinary(f'STOR {name_file}', content_file)
                     content_file.close()
                     ftp.quit()
                     self.message.append(f"{self.code}#{self.name}|||{socket.gethostname()}|||{platform.system()}-{platform.release()}|||{path}|||{l}|||{size}|||{inform}")
