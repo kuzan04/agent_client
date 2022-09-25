@@ -63,6 +63,10 @@ class LogHash0:
             if i == size:
                 return -1
             elif _old[0] == new[0] and _old[1] == new[1]:
+                if len(self._store) == 0:
+                    self._store[_old[0]] = _old[1]
+                else:
+                    self._store[_old[0]].append(_old[1])
                 return True
             else:
                 return self.fileMatch(old, new, size, (i+1))
@@ -79,6 +83,7 @@ class LogHash0:
                 md5 = self.md5sum(f"{_path+filename[0]}")
                 sha1 = self.sha1sum(f"{_path+filename[0]}")
                 self.message.append(f"{self.code}#{self.name}|||{socket.gethostname()}|||{platform.system()} {platform.release()}|||{_path}|||{filename[0]}|||{str(contents_len)}|||{sha256}|||{md5}|||{sha1}")
+                self._store[_path] = []
                 self._store[_path] = filename
             else:
                 pass
