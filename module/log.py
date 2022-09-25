@@ -113,7 +113,7 @@ class LogHash0:
                         else:
                             self.message.append(None)
                     else:
-                        if len(self._backup == 0):
+                        if len(self._backup) == 0:
                             contents_len = len(open(f"{_path+l}", "rb").readlines())
                             sha256 = self.sha256sum(f"{_path+l}")
                             md5 = self.md5sum(f"{_path+l}")
