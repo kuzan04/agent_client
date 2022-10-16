@@ -16,15 +16,8 @@ class dbCheck:
         self._table = tables
         self.message = []
 
-    def queryFromSelected(self, table):
+    def queryFromSelected(self, db, table):
         if int(self._type) == 1:
-            db=mysql.connector.connect(
-                host=self._host,
-                user=self._username,
-                password=self._password,
-                database=self._database,
-                auth_plugin="mysql_native_password"
-            )
             cursor=db.cursor()
             table=table.split(":")
             cursor.execute(f"SELECT {table[-1]} FROM {table[0]}")
@@ -57,6 +50,13 @@ class dbCheck:
             sys.exit(1)
 
     def run(self):
+        db=mysql.connector.connect(
+            host=self._host,
+            user=self._username,
+            password=self._password,
+            database=self._database,
+            auth_plugin="mysql_native_password"
+        )
         for i in self._table:
-            self.queryFromSelected(i)
+            self.queryFromSelected(db, i)
         return self.message

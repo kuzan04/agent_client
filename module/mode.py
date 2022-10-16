@@ -127,14 +127,14 @@ class startTask:
         self.setupConfig()
         cnow = self.config
         ip, port = cnow.pop(3), cnow.pop(-2)
+        conn = mysql.connector.connect(
+            host="127.0.0.1",
+            user="root",
+            password="P@ssw0rd",
+            database="DOL_PDPA_LOCAL",
+            auth_plugin="mysql_native_password"
+        )
         while self._start:
-            conn = mysql.connector.connect(
-                host="127.0.0.1",
-                user="root",
-                password="P@ssw0rd",
-                database="DOL_PDPA_LOCAL",
-                auth_plugin="mysql_native_password"
-            )
             cursor = conn.cursor()
             cursor.execute('SELECT pas.code, pam.agm_status, pam.agm_name, pam.config_detail, pam.agm_token FROM TB_TR_PDPA_AGENT_MANAGE as pam JOIN TB_TR_PDPA_AGENT_STORE as pas ON pam.ags_id = pas.ags_id;')
             commit = cursor.fetchall()
@@ -143,48 +143,54 @@ class startTask:
             elif not self._token and int(self.config[1]) == 1:
                 self._token = self.reverseToken(0)
             else:
-                rs = self.checkToken(commit, 0)
-                if rs == -1:
-                    print("[Errno] Client not match from manage.")
-                    sys.exit(1)
-                else:
-                    rs = list(rs)
-                    rs.pop()
-                    if self._update(rs, cnow, 0) == False and rs[1] == 1:
-                        print(-1)
-                    elif self._update(rs, cnow, 0) == True and rs[1] == 0:
-                        old = cnow
-                        try:
-                            self._updateFile(rs, ip, port)
-                        except KeyboardInterrupt:
-                            self._updateFile(old, ip, port)
-                        finally:
-                            self.config = []
-                            self.setupConfig()
-                    elif self._update(rs, cnow, 0) == True and rs[1] == 1:
+                self._start = False
+        else:
+            rs = self.checkToken(commit, 0)
+            if rs == -1:
+                print("[Errno] Client not match from manage.")
+                sys.exit(1)
+            else:
+                rs = list(rs)
+                rs.pop()
+                if self._update(rs, cnow, 0) == False and rs[1] == 1:
+                    print(-1)
+                elif self._update(rs, cnow, 0) == True and rs[1] == 0:
+                    old = cnow
+                    try:
                         self._updateFile(rs, ip, port)
+                    except KeyboardInterrupt:
+                        self._updateFile(old, ip, port)
+                    finally:
                         self.config = []
                         self.setupConfig()
-                        if self.config[0] == "AG1":
-                            cursor.execute('SELECT path, name_file FROM TB_TR_PDPA_AGENT_LOG0_HASH;')
-                            backup = cursor.fetchall()
-                            result, store = log.LogHash0(self.config[-1].split(","), self.config[0], self.config[2], self._store, backup).run()
-                            self._store = store
-                            self._connect(result, "AG1")
-                        elif self.config[0] == "AG2":
-                            result = file.dirFile(self.config[-1].split(","), self.config[0], self.config[2], self.config[3]).run()
-                            self._connect(result, "AG2")
-                        elif self.config[0] == "AG3":
-                            prepared = self.config[-1].split("&")
-                            result = db.dbCheck(prepared[0], self.config[0], self.config[2], prepared[1], prepared[2], prepared[3], prepared[4], prepared[5:]).run()
-                            self._connect(result, "AG3")
-                        elif self.config[0] == "AG4":
-                            prepared = self.config[-1].split(",")
-                            return f"{self.config},{prepared}"
-                        else:
-                            print("[Errno] Type error.")
+                elif self._update(rs, cnow, 0) == True and rs[1] == 1:
+                    self._updateFile(rs, ip, port)
+                    self.config = []
+                    self.setupConfig()
+                    if self.config[0] == "AG1":
+                        cursor.execute('SELECT path, name_file FROM TB_TR_PDPA_AGENT_LOG0_HASH;')
+                        backup = cursor.fetchall()
+                        result, store = log.LogHash0(self.config[-1].split(","), self.config[0], self.config[2], self._store, backup).run()
+                        self._store = store
+                        self._connect(result, "AG1")
+                        self._start = True
+                    elif self.config[0] == "AG2":
+                        result = file.dirFile(self.config[-1].split(","), self.config[0], self.config[2], self.config[3]).run()
+                        self._connect(result, "AG2")
+                        self._start = True
+                    elif self.config[0] == "AG3":
+                        prepared = self.config[-1].split("&")
+                        result = db.dbCheck(prepared[0], self.config[0], self.config[2], prepared[1], prepared[2], prepared[3], prepared[4], prepared[5:]).run()
+                        self._connect(result, "AG3")
+                        self._start = True
+                    elif self.config[0] == "AG4":
+                        prepared = self.config[-1].split(",")
+                        return f"{self.config},{prepared}"
+                        self._start = True
                     else:
-                        pass
+                        print("[Errno] Type error.")
+                else:
+                    pass
 
     def _connect(self, msg, _type):
         client_cert = [x for x in self._ssl if ".crt" in x.split("/")[-1]].pop()
