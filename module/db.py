@@ -5,20 +5,17 @@ import cx_Oracle
 import datetime
 
 class dbCheck:
-    def __init__(self, t, code, name, host, user, passwd, db, tables):
+    def __init__(self, t, code, name, conn, tables):
         self._type = t
         self.code = code
         self.name = name
-        self._host = host
-        self._username = user
-        self._password = passwd
-        self._database = db
+        self._connect = conn
         self._table = tables
         self.message = []
 
-    def queryFromSelected(self, db, table):
+    def queryFromSelected(self, table):
         if int(self._type) == 1:
-            cursor=db.cursor()
+            cursor=self._connect.cursor()
             table=table.split(":")
             cursor.execute(f"SELECT {table[-1]} FROM {table[0]}")
             result=list(cursor.fetchall())
@@ -50,13 +47,6 @@ class dbCheck:
             sys.exit(1)
 
     def run(self):
-        db=mysql.connector.connect(
-            host=self._host,
-            user=self._username,
-            password=self._password,
-            database=self._database,
-            auth_plugin="mysql_native_password"
-        )
         for i in self._table:
-            self.queryFromSelected(db, i)
+            self.queryFromSelected(i)
         return self.message

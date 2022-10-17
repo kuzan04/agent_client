@@ -8,15 +8,17 @@ from module import log, file, db, connect
 
 class startTask:
     def __init__(self, default, config, ssl):
+        self.config = []
         self._content = ["type", "status", "name", "host", "port", "detail", "cert"]
         self._path = default
         self._config = config
         self._list = os.listdir(config)
         self._start = True
-        self.config = []
         self._token = ""
         self._ssl = ssl
         self._store = {}
+        self._conn = mysql.connector.connect( host="127.0.0.1", user="root", password="P@ssw0rd", database="DOL_PDPA_LOCAL", auth_plugin="mysql_native_password")
+        self._select = ""
 
     def is_base64(self, s):
         try:
@@ -127,15 +129,8 @@ class startTask:
         self.setupConfig()
         cnow = self.config
         ip, port = cnow.pop(3), cnow.pop(-2)
-        conn = mysql.connector.connect(
-            host="127.0.0.1",
-            user="root",
-            password="P@ssw0rd",
-            database="DOL_PDPA_LOCAL",
-            auth_plugin="mysql_native_password"
-        )
         while self._start:
-            cursor = conn.cursor()
+            cursor = self._conn.cursor()
             cursor.execute('SELECT pas.code, pam.agm_status, pam.agm_name, pam.config_detail, pam.agm_token FROM TB_TR_PDPA_AGENT_MANAGE as pam JOIN TB_TR_PDPA_AGENT_STORE as pas ON pam.ags_id = pas.ags_id;')
             commit = cursor.fetchall()
             if not self._token and int(self.config[1]) == 0:
@@ -180,7 +175,11 @@ class startTask:
                         self._start = True
                     elif self.config[0] == "AG3":
                         prepared = self.config[-1].split("&")
-                        result = db.dbCheck(prepared[0], self.config[0], self.config[2], prepared[1], prepared[2], prepared[3], prepared[4], prepared[5:]).run()
+                        if not isinstance(self._select, mysql.connector.connection.MySQLConnection):
+                            self._select = mysql.connector.connect( host=prepared[1], user=prepared[2], password=prepared[3], database=prepared[4], auth_plugin="mysql_native_password")
+                        else:
+                            pass
+                        result = db.dbCheck(prepared[0], self.config[0], self.config[2], self._select, prepared[5:]).run()
                         self._connect(result, "AG3")
                         self._start = True
                     elif self.config[0] == "AG4":
