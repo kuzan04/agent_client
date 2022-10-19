@@ -7,7 +7,7 @@ import mysql.connector
 from module import log, file, db, connect
 
 class startTask:
-    def __init__(self, default, config, ssl):
+    def __init__(self, default, config, ssl, conn):
         self.config = []
         self._content = ["type", "status", "name", "host", "port", "detail", "cert"]
         self._path = default
@@ -17,7 +17,7 @@ class startTask:
         self._token = ""
         self._ssl = ssl
         self._store = {}
-        self._conn = mysql.connector.connect( host="127.0.0.1", user="root", password="P@ssw0rd", database="DOL_PDPA_LOCAL", auth_plugin="mysql_native_password")
+        self._conn = conn
         self._select = ""
 
     def is_base64(self, s):
