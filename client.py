@@ -98,7 +98,7 @@ if __name__ == "__main__":
     conn = mysql.connector.connect( host="127.0.0.1", user="root", password="P@ssw0rd", auth_plugin="mysql_native_password", database="DOL_PDPA_LOCAL" )
     # Call fn check.
     __token__, c_list = check(os.listdir(__config__), __config__)
-    if c_token and c_list:
+    if __token__ and c_list:
         __init__ = setup(c_list)
         db = None
         if config[0] == "AG3":
