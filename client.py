@@ -122,6 +122,6 @@ if __name__ == "__main__":
                 else:
                     pass
             else:
-                pass
+                time.sleep(5)
     else:
         pass
