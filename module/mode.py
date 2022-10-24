@@ -26,7 +26,8 @@ class startTask:
         elif self._token == fetch[i][-1]:
             return fetch[i]
 
-    def reverseToken(self, now):
+    # Hold not use today 2022/24/10 22:57
+    '''def reverseToken(self, now):
         content = ""
         with open(f"{self._config}/init.conf", "r+") as lst:
             lines = lst.readlines()
@@ -44,7 +45,7 @@ class startTask:
                     content+=x[1].strip("\n")+"&&&"
                 elif line is not last and line.find("#") == -1 and now == 0 and line is oldStatus:
                     content+=str(now)+"&&&"
-            return self.stringToBase64(content.encode('utf-8')).decode('utf-8')
+            return self.stringToBase64(content.encode('utf-8')).decode('utf-8')'''
 
     # Hold not use today 2022/20/10 22:14
     '''def _update(self, old, now, i):
@@ -74,12 +75,12 @@ class startTask:
             cursor = self._conn.cursor()
             cursor.execute('SELECT pas.code, pam.agm_status, pam.agm_name, pam.config_detail, pam.agm_token FROM TB_TR_PDPA_AGENT_MANAGE as pam JOIN TB_TR_PDPA_AGENT_STORE as pas ON pam.ags_id = pas.ags_id;')
             commit = cursor.fetchall()
-            if not self._token and int(self.config[1]) == 0:
-                self._token = self.reverseToken(-1)
-            elif not self._token and int(self.config[1]) == 1:
-                self._token = self.reverseToken(0)
-            else:
-                self._start = False
+            #if not self._token and int(self.config[1]) == 0:
+            #    self._token = self.reverseToken(-1)
+            #elif not self._token and int(self.config[1]) == 1:
+            #    self._token = self.reverseToken(0)
+            #else:
+            self._start = False
         else:
             rs = self.checkToken(commit, 0)
             if rs == -1:
