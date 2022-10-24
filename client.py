@@ -29,7 +29,7 @@ def base64ToString(b):
 #======================================================
 def write(f, h, d):
     for i,j in zip(h, d):
-        f.write(f"{i}={j}\n")
+        f.write(f"{i}:={j}\n")
 #======================================================
 # Checking config file
 #======================================================
@@ -38,16 +38,16 @@ def check(_l, _c):
         try:
             token = input("Please enter the token you have: ")
             if is_base64(token) == True and token:
-                c_token = token
-                deatil = base64ToString(token).split("&&&")
-                if "AG1" in deatil or "AG2" in deatil or "AG3" in deatil or "AG4" in deatil:
+                detail = base64ToString(token).split("&&&")
+                detail.append(token)
+                if "AG1" in detail or "AG2" in detail or "AG3" in detail or "AG4" in detail:
                     f = open(f"{_c}/init.conf", "w+")
-                    write(f, ["type", "status", "name", "host", "port", "detail", "cert"], deatil)
+                    write(f, ["type", "status", "name", "host", "port", "detail", "tk"], detail) # after new version might cert in value.
                     f.close()
-                    return c_token, os.listdir(_c)
+                    return os.listdir(_c)
                 else:
                     print("[Errno] Create init.conf not success, please check token incorrect.")
-            elif self.is_base64(token) == False and token:
+            elif is_base64(token) == False and token:
                 print("Token incorrect.\nPlease enter again or exit process.")
             else:
                 print("Bye.")
@@ -57,6 +57,8 @@ def check(_l, _c):
             break
         except Exception as e:
             print(str(e))
+    else:
+        return os.listdir(_c)
 #======================================================
 # Setup config file
 #======================================================
@@ -66,7 +68,7 @@ def setup(_c):
         f=open(os.path.join(_c, "init.conf"), "r").readlines()
         for i in f:
             if i.find("#") == -1:
-                x=i.split("=")
+                x=i.split(":=")
                 c.append(x[1].strip("\n"))
             else:
                 pass
@@ -74,11 +76,11 @@ def setup(_c):
         print(str(e))
         sys.exit(1)
     finally:
-        if len(c) < 6:
+        if len(c) < 7:
             print("[Errno] Please check init file.")
             sys.exit(1)
         else:
-            return c
+            return c, c.pop(-1)
 #======================================================
 # Main
 #======================================================
@@ -97,14 +99,14 @@ if __name__ == "__main__":
     # Connection Main Database.
     conn = mysql.connector.connect( host="127.0.0.1", user="root", password="P@ssw0rd", auth_plugin="mysql_native_password", database="DOL_PDPA_LOCAL" )
     # Call fn check.
-    __token__, c_list = check(os.listdir(__config__), __config__)
-    if __token__ and c_list:
-        __init__ = setup(c_list)
+    c_list = check(os.listdir(__config__), __config__)
+    if c_list:
+        __init__, __token__ = setup(__config__)
         db = None
-        if config[0] == "AG3":
-            detail = config[-1].split("&")
+        if __init__[0] == "AG3":
+            detail = __init__[-1].split("&")
             if detail[0] == 1: # MySQL.
-                db = mysql.connector.connect( host=detail[1], user=detail[2], password=detail[3], auth_plugin="mysql_native_password", database=detail[4] )
+                db = mysql.connector.connect( host=__init__[1], user=__init__[2], password=__init__[3], auth_plugin="mysql_native_password", database=__init__[4] )
             elif detail[0] == 0: # Hold for oracle database.
                 pass
             else: # Hold for another service database.
@@ -112,7 +114,7 @@ if __name__ == "__main__":
         else:
             db = None
         while True:
-            process = mode.startTask(__config__, __init__, __token__, __ssl__, conn, db).run()
+            process = mode.startTask(__config__, __init__, __token__, __ssl__, conn, db)._run()
             if isinstance(process, str):
                 config, prepared = eval(process)[0], eval(process)[1]
                 if int(prepared[0]) == 0: # FTP
