@@ -69,8 +69,8 @@ class startTask:
             f.close()'''
 
     def _run(self):
-        now = self.config
-        ip, port = now.pop(3), now.pop(-2)
+        #now = self.config
+        #ip, port = now.pop(3), now.pop(-2)
         while self._start:
             cursor = self._conn.cursor()
             cursor.execute('SELECT pas.code, pam.agm_status, pam.agm_name, pam.config_detail, pam.agm_token FROM TB_TR_PDPA_AGENT_MANAGE as pam JOIN TB_TR_PDPA_AGENT_STORE as pas ON pam.ags_id = pas.ags_id;')
