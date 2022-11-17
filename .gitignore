@@ -1,3 +1,4 @@
+.env
 !/module/__pycache__
 !/env/lib/python3.10/site-packages/pip/__pycache__
 !/env/lib/python3.10/site-packages/pip/_internal/__pycache__
