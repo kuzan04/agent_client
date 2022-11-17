@@ -1,3 +1,4 @@
+from sys import platform
 import socket
 import ssl
 
@@ -15,7 +16,10 @@ class SSLClient:
         self.close()
 
     def connect(self):
-        self._sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        if platform == "darwin" and platform == "linux" and platform != "win32":
+            self._sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        else:
+            self._sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self._ssock = self._context.wrap_socket(self._sock,)
         self._ssock.connect((self.server_host, self.server_port))
 
