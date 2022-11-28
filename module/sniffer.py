@@ -19,59 +19,17 @@ class SizeFile:
         self.destination = d
 
 class taskSnif:
-    def __init__(self, config, mode, port, path, cpath, timeout=120, user="ftpuser", passwd="ftpuser"):
-        self.config = config
-        self._content = ["type", "status", "name", "host", "port", "detail", "cert"]
-        self._config = cpath
-        self._token = None
-        self._mode = int(mode)
-        self._host = config[3]
-        self._port = int(port)
+    def __init__(self, path, conn, init, token, detail, timeout=120, user="ftpuser", passwd="ftpuser"):
         self._path = path
+        self._conn = conn
+        self.config = init
+        self._token = token
         self._format = 'utf-8'
         self._time = timeout
         self.username = user
         self.password = passwd
         self.name = None
         self.time = None
-
-    def setupConfig(self):
-        try:
-            f=open(os.path.join(self._config, "init.conf"), "r").readlines()
-            for i in f:
-                if i.find("#") == -1:
-                    x=i.split("=")
-                    self.config.append(x[1].strip("\n"))
-        except Exception as e:
-            print(str(e))
-            sys.exit(1)
-        finally:
-            if len(self.config) < 6:
-                print("[Errno] Please check init file.")
-                sys.exit(1)
-
-    def stringToBase64(self, plantText):
-        return base64.b64encode(plantText)
-
-    def reverseToken(self, now):
-        content = ""
-        with open(f"{self._config}/init.conf", "r+") as lst:
-            lines = lst.readlines()
-            last = lines[-1]
-            oldStatus = lines[1]
-            for line in lines:
-                if line is last and line.find("#") == -1 and line is not oldStatus:
-                    x=line.split("=")
-                    content+=x[1].strip("\n")
-                elif line is not last and line.find('#') == -1 and line is not oldStatus:
-                    x=line.split("=")
-                    content+=x[1].strip("\n")+"&&&"
-                elif line is not last and line.find('#') == -1 and now != 0 and line is oldStatus:
-                    x=line.split("=")
-                    content+=x[1].strip("\n")+"&&&"
-                elif line is not last and line.find("#") == -1 and now == 0 and line is oldStatus:
-                    content+=str(now)+"&&&"
-            return self.stringToBase64(content.encode('utf-8')).decode('utf-8')
 
     def checkToken(self, fetch, i):
         if i == len(fetch):
@@ -81,118 +39,24 @@ class taskSnif:
         elif self._token == fetch[i][-1]:
             return fetch[i]
 
-    def _listC(self, f, detail):
-        for i,j in zip(self._content, detail):
-            f.write(f"{i}={j}\n")
-
-    def _update(self, old, now, i):
-        if i == (len(old)+len(now))/2:
+    def _update(self, now, i):
+        if i == (len(self.config)+len(now))/2:
             return False
-        elif i == 1 and old[i] == int(now[i]):
+        elif i == 1 and self.config[i] == int(now[i]):
             return self._update(old, now, (i+1))
-        elif i == 1 and old[i] != int(now[i]):
+        elif i == 1 and self.config[i] != int(now[i]):
             return True
-        elif i > 1 or i == 0 and old[i] != now[i]:
+        elif i > 1 or i == 0 and self.config[i] != now[i]:
             return True
-        elif i > 1 or i == 0 and old[i] == now[i]:
+        elif i > 1 or i == 0 and self.config[i] == now[i]:
             return self._update(old, now, (i+1))
 
-    def _updateFile(self, new, ip, port):
-        new.insert(3, ip), new.insert(-1, port)
+    def _updateFile(self, new):
         if "AG1" in new or "AG2" in new or "AG3" in new or "AG4" in new:
             f=open(f"{self._config}/init.conf", "w+")
-            self._listC(f, new)
+            for i,j in zip(["type", "status", "name", "host", "port", "detail", "tk"], new):
+                f.write(f"{i}:={j}\n")
             f.close()
-
-    def tcpDump(self, p):
-        cnow = self.config
-        ip, port = cnow.pop(3), cnow.pop(-2)
-        if self._mode == 0:
-            for row in iter(p.stdout.readline, b''):
-                conn = mysql.connector.connect(
-                    host="127.0.0.1",
-                    user="root",
-                    password="P@ssw0rd",
-                    database="DOL_PDPA",
-                    auth_plugin="mysql_native_password"
-                )
-                cursor = conn.cursor()
-                cursor.execute('SELECT pas.code, pam.agm_status, pam.agm_name, pam.config_detail, pam.agm_token FROM TB_TR_PDPA_AGENT_MANAGE as pam JOIN TB_TR_PDPA_AGENT_STORE as pas ON pam.ags_id = pas.ags_id;')
-                commit = cursor.fetchall()
-                if not self._token and int(self.config[1]) == 0:
-                    self._token = self.reverseToken(-1)
-                elif not self._token and int(self.config[1]) == 1:
-                    self._token = self.reverseToken(0)
-                else:
-                    rs = self.checkToken(commit, 0)
-                    if rs == -1:
-                        print("[Errno] Client not match from manage.")
-                        sys.exit(1)
-                    else:
-                        rs = list(rs)
-                        rs.pop()
-                        if self._update(rs, cnow, 0) == False and rs[1] == 1:
-                            print(-1)
-                        elif self._update(rs, cnow, 0) == True and rs[1] == 0:
-                            old = cnow
-                            try:
-                                self._updateFile(rs, ip, port)
-                            except KeyboardInterrupt:
-                                self._updateFile(old, ip, port)
-                            finally:
-                                self.config = []
-                                self.setupConfig()
-                        elif self._update(rs, cnow, 0) == True and rs[1] == 1:
-                            self._updateFile(rs, ip, port)
-                            self.config = []
-                            self.setupConfig()
-                            self.writeSniff(row.rstrip())
-                            self.sendFTP()
-                        else:
-                            pass
-        elif self._mode == 1:
-            for row in iter(p.stdout.readline, b''):
-                conn = mysql.connector.connect(
-                    host="127.0.0.1",
-                    user="root",
-                    password="P@ssw0rd",
-                    database="DOL_PDPA",
-                    auth_plugin="mysql_native_password"
-                )
-                cursor = conn.cursor()
-                cursor.execute('SELECT pas.code, pam.agm_status, pam.agm_name, pam.config_detail, pam.agm_token FROM TB_TR_PDPA_AGENT_MANAGE as pam JOIN TB_TR_PDPA_AGENT_STORE as pas ON pam.ags_id = pas.ags_id;')
-                commit = cursor.fetchall()
-                if not self._token and self._status == 0:
-                    self._token = self.reverseToken(-1)
-                elif not self._token and self._status == 1:
-                    self._token = self.reverseToken(0)
-                else:
-                    rs = self.checkToken(commit, 0)
-                    if rs == -1:
-                        print("[Errno] Client not match from manage.")
-                        sys.exit(1)
-                    else:
-                        rs = list(rs)
-                        rs.pop()
-                        if self._update(rs, cnow, 0) == False and rs[1] == 1:
-                            print(-1)
-                        elif self._update(rs, cnow, 0) == True and rs[1] == 0:
-                            old = cnow
-                            try:
-                                self._updateFile(rs, ip, port)
-                            except KeyboardInterrupt:
-                                self._updateFile(old, ip, port)
-                            finally:
-                                self.config = []
-                                self.setupConfig()
-                        elif self._update(rs, cnow, 0) == True and rs[1] == 1:
-                            self._updateFile(rs, ip, port)
-                            self.config = []
-                            self.setupConfig()
-                            self.sendSyslog(row.rstrip())
-        else:
-            print('[ERROR] tcpDump() Please check config file line 1.')
-            sys.exit(1)
 
     def successFile(self):
         iter_files=sorted(Path(self._path).iterdir(), key=os.path.getmtime)
@@ -285,6 +149,7 @@ class taskSnif:
             rs.append(n)
         return rs
 
+    # Mode 0
     def sendFTP(self):
         try:
             ftp=ftplib.FTP_TLS()
@@ -345,6 +210,7 @@ class taskSnif:
                     print('[Errno] sendFTP() Please check file config.')
                     sys.exit(1)
 
+    # Mode 1
     def sendSyslog(self, m):
         try:
             logger=log.getLogger()
@@ -359,13 +225,98 @@ class taskSnif:
             print(str(e))
             sys.exit(1)
 
+    # Main process.
+    def tcpDump(self, p):
+        if self.config[0] == 0:
+            for row in iter(p.stdout.readline, b''):
+                cursor = self._conn.cursor()
+                cursor.execute('SELECT pas.code, pam.agm_status, pam.agm_name, pam.config_detail, pam.agm_token FROM TB_TR_PDPA_AGENT_MANAGE as pam JOIN TB_TR_PDPA_AGENT_STORE as pas ON pam.ags_id = pas.ags_id;')
+                commit = cursor.fetchall()
+                rs = self.checkToken(commit, 0)
+                if rs == -1:
+                    print("[Errno] Client not match from manage.")
+                    sys.exit(1)
+                else:
+                    rs = list(rs)
+                    rs.insert(3, self.config[2]), rs.insert(4, self.config[4])
+                    if self._update(rs, 0) == True and rs[1] == 1:
+                        # Sub process.
+                        self.writeSniff(row.rstrip())
+                        self.sendFTP()
+                    else:
+                        try:
+                            self._updateFile(rs)
+                        except KeyboardInterrupt:
+                            self._updateFile(self.config)
+                        finally:
+                            self.config = []
+                            try:
+                                f=open(os.path.join(self._config, "init.conf"), "r").readlines()
+                                for i in f:
+                                    if i.find('#') == -1:
+                                        x=i.split(":=")
+                                        self.config.append(x[1].strip("\n"))
+                                    else:
+                                        pass
+                            except Exception as e:
+                                print(str(e))
+                                sys.exit(1)
+                            finally:
+                                if len(self.config) < 7:
+                                    print("[Errno] Please check init file.")
+                                    sys.exit(1)
+                                else:
+                                    pass
+        elif self._mode == 1:
+            for row in iter(p.stdout.readline, b''):
+                cursor = self._conn.cursor()
+                cursor.execute('SELECT pas.code, pam.agm_status, pam.agm_name, pam.config_detail, pam.agm_token FROM TB_TR_PDPA_AGENT_MANAGE as pam JOIN TB_TR_PDPA_AGENT_STORE as pas ON pam.ags_id = pas.ags_id;')
+                commit = cursor.fetchall()
+                rs = self.checkToken(commit, 0)
+                if rs == -1:
+                    print("[Errno] Client not match from manage.")
+                    sys.exit(1)
+                else:
+                    rs = list(rs)
+                    rs.insert(3, self.config[2]), rs.insert(4, self.config[3])
+                    if self._update(rs, 0) == True and rs[1] == 1:
+                        # Sub process.
+                        self.sendSyslog(row.rstrip())
+                    else:
+                        try:
+                            self._updateFile(rs)
+                        except KeyboardInterrupt:
+                            self._updateFile(self.config)
+                        finally:
+                            self.config = []
+                            try:
+                                f=open(os.path.join(self._config, "init.conf"), "r").readlines()
+                                for i in f:
+                                    if i.find('#') == -1:
+                                        x=i.split(":=")
+                                        self.config.append(x[1].strip("\n"))
+                                    else:
+                                        pass
+                            except Exception as e:
+                                print(str(e))
+                                sys.exit(1)
+                            finally:
+                                if len(self.config) < 7:
+                                    print("[Errno] Please check init file.")
+                                    sys.exit(1)
+                                else:
+                                    pass
+        else:
+            print('[ERROR] tcpDump() Please check config file line 1.')
+            sys.exit(1)
+
     def run(self):
         try:
-            if self._mode == 0 or self._mode == 1:
+            if self.config[0] == 0 or self.config[0] == 1:
                 process = sub.Popen(('sudo', 'tcpdump', '-l'), stdout=sub.PIPE)
                 self.tcpDump(process)
             else:
-                print("[Errno] OS not support, Please check informant on http://alltra.con or contact develop alltraenterprise@gmailcom")
+                print("[Errno] OS not support, Please check informant on https://alltra.com or contact develop alltraenterprise@gmailcom")
                 sys.exit(1)
         except Exception as e:
             print(str(e))

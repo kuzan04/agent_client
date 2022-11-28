@@ -114,16 +114,12 @@ if __name__ == "__main__":
         else:
             db = None
         while True:
-            process = mode.startTask(__config__, __init__, __token__, __ssl__, conn, db)._run()
-            if isinstance(process, str):
-                config, prepared = eval(process)[0], eval(process)[1]
-                if int(prepared[0]) == 0: # FTP
-                    sniffer.taskSnif(config, prepared[0], 21, prepared[-1], __config__).run()
-                elif int(prepared[0]) == 1: # Syslog
-                    sniffer.taskSnif(config, prepared[0], 514, prepared[-1], __config__).run()
-                else:
-                    pass
+            if __init__[0] != "AG4":
+                process = mode.startTask(__config__, __init__, __token__, __ssl__, conn, db)._run()
             else:
-                time.sleep(5)
+                default = __config__[-1].split(",")
+                sniffer.taskSnif(__config__, __init__, __token__, detail).run()
+            # Delay time.
+            time.sleep(5)
     else:
         pass
