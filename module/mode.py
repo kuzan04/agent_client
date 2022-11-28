@@ -15,9 +15,6 @@ class startTask:
         self._select = db
         self.config = init
 
-    def stringToBase64(self, plantText):
-        return base64.b64encode(plantText)
-
     def checkToken(self, fetch, i):
         if i == len(fetch):
             return -1
@@ -76,10 +73,6 @@ class startTask:
                         prepared = self.config[-2].split(":")
                         result = db.dbCheck(prepared[0], self.config[0], self.config[2], self._select, prepared[5:]).run()
                         self._connect(result, "AG3")
-                        self._start = True
-                    elif self.config[0] == "AG4":
-                        prepared = self.config[-1].split(",")
-                        return f"{self.config},{prepared}"
                         self._start = True
                     else:
                         print("[Errno] Type error.")
