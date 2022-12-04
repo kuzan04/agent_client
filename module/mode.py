@@ -56,7 +56,7 @@ class startTask:
                 sys.exit(1)
             else:
                 rs = list(rs)
-                rs.insert(3, self.config[2]), rs.insert(4, self.config[3])
+                rs.insert(3, self.config[3]), rs.insert(4, self.config[4])
                 if self._update(rs, 0) == True and rs[1] == 1:
                     if self.config[0] == "AG1":
                         cursor.execute('SELECT path, name_file FROM TB_TR_PDPA_AGENT_LOG0_HASH;')
