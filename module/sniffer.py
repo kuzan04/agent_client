@@ -61,40 +61,6 @@ class taskSnif:
                 f.write(f"{i}:={j}\n")
             f.close()
 
-    def successFile(self):
-        iter_files=sorted(Path(self.detail[-1]).iterdir(), key=os.path.getmtime)
-        files=[i.name for i in iter_files]
-        if len(files) >  1 and '.DS_Store' in files:
-            files.remove('.DS_Store')
-            if os.path.exists(os.path.join(self.detail[-1], files[0])):
-                os.remove(os.path.join(self.detail[-1], files[0]))
-            else:
-                return -1
-        elif len(files) > 1 and '.DS_Store' not in files:
-            if os.path.exists(os.path.join(self.detail[-1], files[0])):
-                os.remove(os.path.join(self.detail[-1], files[0]))
-            else:
-                return -1
-
-    def writeSniff(self, b):
-        date=str(datetime.datetime.now()).replace(" ", ",").split(',')
-        fulltime=date[-1].split('.')
-        date.pop(), fulltime.pop()
-        hour=int(fulltime[0].split(":")[0])
-        # Check minutes => int(time[0].split(":")[-2])
-        # Check hours => int(time[0].split(":")[0])
-        if hour < 24 and hour == self.time:
-            n=open(self.name, 'a+')
-            n.write(b.decode(self._format)+"\n")
-            n.close()
-        else:
-            self.successFile()
-            self.name = os.path.join(self.detail[-1], f"{self._host},{hour}:00,{date[-1]}.snf")
-            n=open(self.name, 'a+')
-            n.write(b.decode(self._format)+"\n")
-            n.close()
-            self.time=hour
-
     def checkList(self, a0, a1, i, j):
         if i == len(a0):
             return a0[(i-1)]
@@ -151,6 +117,40 @@ class taskSnif:
         for n, facts in f:
             rs.append(n)
         return rs
+
+    def successFile(self):
+        iter_files=sorted(Path(self.detail[-1]).iterdir(), key=os.path.getmtime)
+        files=[i.name for i in iter_files]
+        if len(files) >  1 and '.DS_Store' in files:
+            files.remove('.DS_Store')
+            if os.path.exists(os.path.join(self.detail[-1], files[0])):
+                os.remove(os.path.join(self.detail[-1], files[0]))
+            else:
+                return -1
+        elif len(files) > 1 and '.DS_Store' not in files:
+            if os.path.exists(os.path.join(self.detail[-1], files[0])):
+                os.remove(os.path.join(self.detail[-1], files[0]))
+            else:
+                return -1
+
+    def writeSniff(self, b):
+        date=str(datetime.datetime.now()).replace(" ", ",").split(',')
+        fulltime=date[-1].split('.')
+        date.pop(), fulltime.pop()
+        hour=int(fulltime[0].split(":")[0])
+        # Check minutes => int(time[0].split(":")[-2])
+        # Check hours => int(time[0].split(":")[0])
+        if hour < 24 and hour == self.time:
+            n=open(self.name, 'a+')
+            n.write(b.decode(self._format)+"\n")
+            n.close()
+        else:
+            self.successFile()
+            self.name = os.path.join(self.detail[-1], f"{self._host},{hour}:00,{date[-1]}.snf")
+            n=open(self.name, 'a+')
+            n.write(b.decode(self._format)+"\n")
+            n.close()
+            self.time=hour
 
     # Mode 0
     def sendFTP(self):
