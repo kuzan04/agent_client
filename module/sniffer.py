@@ -32,6 +32,7 @@ class taskSnif:
         self.password = passwd
         self.name = None
         self.time = None
+        self._start = True
 
     def checkToken(self, fetch, i):
         if i == len(fetch):
@@ -229,100 +230,64 @@ class taskSnif:
 
     # Main process.
     def tcpDump(self, p):
-        if int(self.detail[0]) == 0:
-            for row in iter(p.stdout.readline, b''):
-                cursor = self._conn.cursor()
-                cursor.execute('SELECT pas.code, pam.agm_status, pam.agm_name, pam.config_detail, pam.agm_token FROM TB_TR_PDPA_AGENT_MANAGE as pam JOIN TB_TR_PDPA_AGENT_STORE as pas ON pam.ags_id = pas.ags_id;')
-                commit = cursor.fetchall()
-                rs = self.checkToken(commit, 0)
-                if rs == -1:
-                    print("[Errno] Client not match from manage.")
-                    sys.exit(1)
-                else:
-                    rs = list(rs)
-                    rs.insert(3, self.config[3]), rs.insert(4, self.config[4])
-                    if self._update(rs, 0) == True and int(rs[1]) == 1 and int(self.config[1]) == 1:
-                        # Sub process.
-                        self.writeSniff(row.rstrip())
-                        self.sendFTP()
-                    else:
-                        try:
-                            self._updateFile(rs)
-                        except KeyboardInterrupt:
-                            self._updateFile(self.config)
-                        finally:
-                            self.config = []
-                            try:
-                                f=open(os.path.join(self._config, "init.conf"), "r").readlines()
-                                for i in f:
-                                    if i.find('#') == -1:
-                                        x=i.split(":=")
-                                        self.config.append(x[1].strip("\n"))
-                                    else:
-                                        pass
-                            except Exception as e:
-                                print(str(e))
-                                sys.exit(1)
-                            finally:
-                                if len(self.config) < 7:
-                                    print("[Errno] Please check init file.")
-                                    sys.exit(1)
-                                else:
-                                    pass
-        elif int(self.detail[0]) == 1:
-            for row in iter(p.stdout.readline, b''):
-                cursor = self._conn.cursor()
-                cursor.execute('SELECT pas.code, pam.agm_status, pam.agm_name, pam.config_detail, pam.agm_token FROM TB_TR_PDPA_AGENT_MANAGE as pam JOIN TB_TR_PDPA_AGENT_STORE as pas ON pam.ags_id = pas.ags_id;')
-                commit = cursor.fetchall()
-                rs = self.checkToken(commit, 0)
-                if rs == -1:
-                    print("[Errno] Client not match from manage.")
-                    sys.exit(1)
-                else:
-                    rs = list(rs)
-                    rs.insert(3, self.config[3]), rs.insert(4, self.config[4])
-                    if self._update(rs, 0) == True and rs[1] == 1:
-                        # Sub process.
-                        self.sendSyslog(row.rstrip())
-                    else:
-                        try:
-                            self._updateFile(rs)
-                        except KeyboardInterrupt:
-                            self._updateFile(self.config)
-                        finally:
-                            self.config = []
-                            try:
-                                f=open(os.path.join(self._config, "init.conf"), "r").readlines()
-                                for i in f:
-                                    if i.find('#') == -1:
-                                        x=i.split(":=")
-                                        self.config.append(x[1].strip("\n"))
-                                    else:
-                                        pass
-                            except Exception as e:
-                                print(str(e))
-                                sys.exit(1)
-                            finally:
-                                if len(self.config) < 7:
-                                    print("[Errno] Please check init file.")
-                                    sys.exit(1)
-                                else:
-                                    pass
-        else:
-            print('[ERROR] tcpDump() Please check config file line 1.')
-            sys.exit(1)
+        for row in iter(p.stdout.readline, b''):
+            # Sub process.
+            if int(self.detail[0]) == 0:
+                self.writeSniff(row.rstrip())
+                self.sendFTP()
+            elif int(self.detail[0]) == 1:
+                # Sub process.
+                self.sendSyslog(row.rstrip())
 
     def run(self):
-        try:
-            if int(self.detail[0]) == 0 or int(self.detail[0]) == 1:
-                process = sub.Popen(('sudo', 'tcpdump', '-l'), stdout=sub.PIPE)
-                self.tcpDump(process)
-            else:
-                print("[Errno] OS not support, Please check informant on https://alltra.com or contact develop alltra@gmail.com")
+        while self._start:
+            cursor = self._conn.cursor()
+            cursor.execute('SELECT pas.code, pam.agm_status, pam.agm_name, pam.config_detail, pam.agm_token FROM TB_TR_PDPA_AGENT_MANAGE as pam JOIN TB_TR_PDPA_AGENT_STORE as pas ON pam.ags_id = pas.ags_id;')
+            commit = cursor.fetchall()
+            rs = self.checkToken(commit, 0)
+            if rs == -1:
+                print("[Errno] Client not match from manage.")
                 sys.exit(1)
-        except Exception as e:
-            print(str(e))
-            sys.exit(1)
-        except KeyboardInterrupt:
-            print("\nCaught keyboard interrupt, exiting")
-            sys.exit(1)
+            else:
+                rs = list(rs)
+                rs.insert(3, self.config[3]), rs.insert(4, self.config[4])
+                if self._update(rs, 0) == True and int(rs[1]) == 1 and int(self.config[1]) == 1:
+                    self._start = False
+                else:
+                    try:
+                        self._updateFile(rs)
+                    except KeyboardInterrupt:
+                        self._updateFile(self.config)
+                    finally:
+                        self.config = []
+                        try:
+                            f=open(os.path.join(self._config, "init.conf"), "r").readlines()
+                            for i in f:
+                                if i.find('#') == -1:
+                                    x=i.split(":=")
+                                    self.config.append(x[1].strip("\n"))
+                                else:
+                                    pass
+                        except Exception as e:
+                            print(str(e))
+                            sys.exit(1)
+                        finally:
+                            if len(self.config) < 7:
+                                print("[Errno] Please check init file.")
+                                sys.exit(1)
+                            else:
+                                pass
+        else:
+            try:
+                if int(self.detail[0]) == 0 or int(self.detail[0]) == 1:
+                    process = sub.Popen(('sudo', 'tcpdump', '-l'), stdout=sub.PIPE)
+                    self.tcpDump(process)
+                else:
+                    print("[Errno] OS not support, Please check informant on https://alltra.com or contact develop alltra@gmail.com")
+                    sys.exit(1)
+            except Exception as e:
+                print(str(e))
+                sys.exit(1)
+            except KeyboardInterrupt:
+                print("\nCaught keyboard interrupt, exiting")
+                sys.exit(1)
