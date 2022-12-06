@@ -157,8 +157,9 @@ class taskSnif:
     def sendFTP(self):
         try:
             ftp=ftplib.FTP_TLS()
-            ftp.connect(self.config[3], self._port, self._time)
-            ftp.login(self.username, self.password)
+            ftp.connect(self.config[3], int(self._port), self._time)
+            ftp.sendcmd(f'USER {self.username}')
+            ftp.sendcmd(f'PASS {self.password}')
             ftp.prot_p()
             ftp_directory = []
             ftp.dir(ftp_directory.append)
@@ -207,6 +208,10 @@ class taskSnif:
                 print(str(e))
                 print('[Errno] sendFTP() Please check file config.')
                 sys.exit(1)
+            elif err[0] == "530":
+                print(str(e))
+                print('[Errno] sendFTP() Please check FTP server.')
+                sys.exit(1)
             else:
                 err=err[1].replace("]","")
                 if int(err) != 49:
@@ -219,7 +224,7 @@ class taskSnif:
         try:
             logger=log.getLogger()
             logger.setLevel(log.INFO) # CRITICAL = 50, ERROR = 40, WARNING = 30, INFO = 20, DEBUG = 10, NOTSET = 0 **NOTE** handler syslog server ip can't sure dynamic must manually.
-            handler = logHandle.SysLogHandler(address = (self.config[3], self._port), socktype=socket.SOCK_DGRAM)
+            handler = logHandle.SysLogHandler(address = (self.config[3], int(self._port)), socktype=socket.SOCK_DGRAM)
             logger.addHandler(handler)
             logger.info(m)
             logger.removeHandler(handler)
