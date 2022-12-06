@@ -4,6 +4,7 @@ import subprocess as sub
 import time
 import datetime
 import ftplib
+import ssl
 import os
 from pathlib import Path
 import posixpath
@@ -156,7 +157,8 @@ class taskSnif:
     # Mode 0
     def sendFTP(self):
         try:
-            ftp=ftplib.FTP_TLS()
+            ctx = ssl._create_stdlib_context(ssl.PROTOCOL_TLSv1_2)
+            ftp=ftplib.FTP_TLS(context=ctx)
             ftp.connect(self.config[3], int(self._port), self._time)
             ftp.sendcmd(f'USER {self.username}')
             ftp.sendcmd(f'PASS {self.password}')
@@ -208,15 +210,16 @@ class taskSnif:
                 print(str(e))
                 print('[Errno] sendFTP() Please check file config.')
                 sys.exit(1)
-            elif err[0] == "530":
-                print(str(e))
-                print('[Errno] sendFTP() Please check FTP server.')
-                sys.exit(1)
             else:
                 err=err[1].replace("]","")
-                if int(err) != 49:
+                try:
+                    if int(err) != 49:
+                        print(str(e))
+                        print('[Errno] sendFTP() Please check file config.')
+                        sys.exit(1)
+                except:
                     print(str(e))
-                    print('[Errno] sendFTP() Please check file config.')
+                    print('[Errno] sendFTP() Please check FTP server.')
                     sys.exit(1)
 
     # Mode 1
