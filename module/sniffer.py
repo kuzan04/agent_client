@@ -24,15 +24,16 @@ class taskSnif:
         self._conn = conn
         self._host = host
         self._token = token
-        self._format = 'utf-8'
-        self._time = timeout
         self.config = init[:-1]
         self.detail = init[-1].split(",")
+        self._port = 21 if int(init[-1].split(",")[0]) == 0 else 514 # same a > b and 21 or 514
+        self._start = True
+        self._format = 'utf-8'
+        self._time = timeout
         self.username = user
         self.password = passwd
         self.name = None
         self.time = None
-        self._start = True
 
     def checkToken(self, fetch, i):
         if i == len(fetch):
@@ -156,7 +157,7 @@ class taskSnif:
     def sendFTP(self):
         try:
             ftp=ftplib.FTP_TLS()
-            ftp.connect(self.config[3], int(self.config[4]), self._time)
+            ftp.connect(self.config[3], self._port, self._time)
             ftp.login(self.username, self.password)
             ftp.prot_p()
             ftp_directory = []
@@ -218,7 +219,7 @@ class taskSnif:
         try:
             logger=log.getLogger()
             logger.setLevel(log.INFO) # CRITICAL = 50, ERROR = 40, WARNING = 30, INFO = 20, DEBUG = 10, NOTSET = 0 **NOTE** handler syslog server ip can't sure dynamic must manually.
-            handler = logHandle.SysLogHandler(address = (self.config[3], int(self.config[4])), socktype=socket.SOCK_DGRAM)
+            handler = logHandle.SysLogHandler(address = (self.config[3], self._port, socktype=socket.SOCK_DGRAM)
             logger.addHandler(handler)
             logger.info(m)
             logger.removeHandler(handler)
