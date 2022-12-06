@@ -118,7 +118,7 @@ if __name__ == "__main__":
                 process = mode.startTask(__config__, __init__, __token__, __ssl__, conn, db)._run()
             else:
                 default = __config__[-1].split(",")
-                sniffer.taskSnif(__config__, __init__, __token__, detail).run()
+                sniffer.taskSnif(__config__, __init__, __token__).run()
             # Delay time.
             time.sleep(5)
     else:
