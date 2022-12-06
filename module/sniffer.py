@@ -45,13 +45,13 @@ class taskSnif:
         if i == (len(self.config)+len(now))/2:
             return False
         elif i == 1 and self.config[i] == int(now[i]):
-            return self._update(old, now, (i+1))
+            return self._update(now, (i+1))
         elif i == 1 and self.config[i] != int(now[i]):
             return True
         elif i > 1 or i == 0 and self.config[i] != now[i]:
             return True
         elif i > 1 or i == 0 and self.config[i] == now[i]:
-            return self._update(old, now, (i+1))
+            return self._update(now, (i+1))
 
     def _updateFile(self, new):
         if "AG1" in new or "AG2" in new or "AG3" in new or "AG4" in new:
@@ -241,7 +241,7 @@ class taskSnif:
                 else:
                     rs = list(rs)
                     rs.insert(3, self.config[3]), rs.insert(4, self.config[4])
-                    if self._update(rs, 0) == True and rs[1] == 1:
+                    if self._update(rs, 0) == True and int(rs[1]) == 1 and int(self.config[1]) == 1:
                         # Sub process.
                         self.writeSniff(row.rstrip())
                         self.sendFTP()
