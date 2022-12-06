@@ -219,7 +219,7 @@ class taskSnif:
         try:
             logger=log.getLogger()
             logger.setLevel(log.INFO) # CRITICAL = 50, ERROR = 40, WARNING = 30, INFO = 20, DEBUG = 10, NOTSET = 0 **NOTE** handler syslog server ip can't sure dynamic must manually.
-            handler = logHandle.SysLogHandler(address = (self.config[3], self._port, socktype=socket.SOCK_DGRAM)
+            handler = logHandle.SysLogHandler(address = (self.config[3], self._port), socktype=socket.SOCK_DGRAM)
             logger.addHandler(handler)
             logger.info(m)
             logger.removeHandler(handler)
