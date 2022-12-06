@@ -19,13 +19,15 @@ class SizeFile:
         self.destination = d
 
 class taskSnif:
-    def __init__(self, path, conn, init, token, timeout=120, user="ftpuser", passwd="ftpuser"):
-        self._path = path
+    def __init__(self, path, conn, init, token, host, timeout=120, user="ftpuser", passwd="ftpuser"):
+        self._config = path
         self._conn = conn
-        self.config = init
+        self._host = host
         self._token = token
         self._format = 'utf-8'
         self._time = timeout
+        self.config = init[:-1]
+        self.detail = init[-1].split(",")
         self.username = user
         self.password = passwd
         self.name = None
@@ -59,17 +61,17 @@ class taskSnif:
             f.close()
 
     def successFile(self):
-        iter_files=sorted(Path(self._path).iterdir(), key=os.path.getmtime)
+        iter_files=sorted(Path(self.detail[-1]).iterdir(), key=os.path.getmtime)
         files=[i.name for i in iter_files]
         if len(files) >  1 and '.DS_Store' in files:
             files.remove('.DS_Store')
-            if os.path.exists(os.path.join(self._path, files[0])):
-                os.remove(os.path.join(self._path, files[0]))
+            if os.path.exists(os.path.join(self.detail[-1], files[0])):
+                os.remove(os.path.join(self.detail[-1], files[0]))
             else:
                 return -1
         elif len(files) > 1 and '.DS_Store' not in files:
-            if os.path.exists(os.path.join(self._path, files[0])):
-                os.remove(os.path.join(self._path, files[0]))
+            if os.path.exists(os.path.join(self.detail[-1], files[0])):
+                os.remove(os.path.join(self.detail[-1], files[0]))
             else:
                 return -1
 
@@ -86,7 +88,7 @@ class taskSnif:
             n.close()
         else:
             self.successFile()
-            self.name = os.path.join(self._path, f"{self._host},{hour}:00,{date[-1]}.snf")
+            self.name = os.path.join(self.detail[-1], f"{self._host},{hour}:00,{date[-1]}.snf")
             n=open(self.name, 'a+')
             n.write(b.decode(self._format)+"\n")
             n.close()
@@ -114,7 +116,7 @@ class taskSnif:
 
     def findLength(self, l, ftp, s):
         if l[-1] == s:
-            sub0=os.path.getsize(os.path.join(self._path, l[-1]))
+            sub0=os.path.getsize(os.path.join(self.detail[-1], l[-1]))
             ftp.sendcmd('TYPE I') # Switch to Binary
             sub1=ftp.size(s)
             return SizeFile(l[-1], sub0, sub1)
@@ -153,13 +155,13 @@ class taskSnif:
     def sendFTP(self):
         try:
             ftp=ftplib.FTP_TLS()
-            ftp.connect(self._host, self._port, self._time)
+            ftp.connect(self.config[3], int(self.config[4]), self._time)
             ftp.login(self.username, self.password)
             ftp.prot_p()
             ftp_directory = []
             ftp.dir(ftp_directory.append)
             ftp_directory = self.convertNoneType(ftp_directory)
-            local_files = os.listdir(self._path)
+            local_files = os.listdir(self.detail[-1])
             if '.DS_Store' in local_files:
                 local_files.remove('.DS_Store')
             else:
@@ -169,7 +171,7 @@ class taskSnif:
                 ftp.cwd(self._host)
                 ftp_files = self.convertSetToList(ftp.mlsd())
                 if len(ftp_files) == 0 and self._host in local_files:
-                    f = open(os.path.join(self._path, local_files[local_files.index(self._host)]),'rb')
+                    f = open(os.path.join(self.detail[-1], local_files[local_files.index(self._host)]),'rb')
                     dest_path=f'/{self._host}/{local_files[local_files.index(self._host)]}'
                     ftp.storbinary(f'STOR {dest_path}', f)
                     f.close()
@@ -180,7 +182,7 @@ class taskSnif:
                 ftp_files = self.convertSetToList(ftp.mlsd())
                 rs = self.checkList(local_files, ftp_files, 0, 0)
                 if rs != 0:
-                    f=open(os.path.join(self._path, rs),'rb')
+                    f=open(os.path.join(self.detail[-1], rs),'rb')
                     dest_path=f'/{self._host}/{rs}'
                     ftp.storbinary(f'STOR {dest_path}', f)
                     f.close()
@@ -189,7 +191,7 @@ class taskSnif:
                     ftp.sendcmd('TYPE A') # Switch backto ascii
                     if isinstance(rs1, SizeFile):
                         if self.checkLength(rs1) == 1:
-                            f=open(os.path.join(self._path, local_files[-1]),'rb')
+                            f=open(os.path.join(self.detail[-1], local_files[-1]),'rb')
                             dest_path=f'/{self._host}/{local_files[-1]}'
                             ftp.storbinary(f'STOR {dest_path}', f)
                             f.close()
@@ -214,8 +216,8 @@ class taskSnif:
     def sendSyslog(self, m):
         try:
             logger=log.getLogger()
-            logger.setLevel(log.INFO) # CRITICAL = 50, ERROR = 40, WARNING = 30, INFO = 20, DEBUG = 10, NOTSET = 0
-            handler = logHandle.SysLogHandler(address = (self._host, self._port), socktype=socket.SOCK_DGRAM)
+            logger.setLevel(log.INFO) # CRITICAL = 50, ERROR = 40, WARNING = 30, INFO = 20, DEBUG = 10, NOTSET = 0 **NOTE** handler syslog server ip can't sure dynamic must manually.
+            handler = logHandle.SysLogHandler(address = (self.config[3], int(self.config[4])), socktype=socket.SOCK_DGRAM)
             logger.addHandler(handler)
             logger.info(m)
             logger.removeHandler(handler)
@@ -227,7 +229,7 @@ class taskSnif:
 
     # Main process.
     def tcpDump(self, p):
-        if self.config[0] == 0:
+        if int(self.details[0]) == 0:
             for row in iter(p.stdout.readline, b''):
                 cursor = self._conn.cursor()
                 cursor.execute('SELECT pas.code, pam.agm_status, pam.agm_name, pam.config_detail, pam.agm_token FROM TB_TR_PDPA_AGENT_MANAGE as pam JOIN TB_TR_PDPA_AGENT_STORE as pas ON pam.ags_id = pas.ags_id;')
@@ -238,7 +240,7 @@ class taskSnif:
                     sys.exit(1)
                 else:
                     rs = list(rs)
-                    rs.insert(3, self.config[2]), rs.insert(4, self.config[4])
+                    rs.insert(3, self.config[3]), rs.insert(4, self.config[4])
                     if self._update(rs, 0) == True and rs[1] == 1:
                         # Sub process.
                         self.writeSniff(row.rstrip())
@@ -267,7 +269,7 @@ class taskSnif:
                                     sys.exit(1)
                                 else:
                                     pass
-        elif self._mode == 1:
+        elif int(self.detail[0]) == 1:
             for row in iter(p.stdout.readline, b''):
                 cursor = self._conn.cursor()
                 cursor.execute('SELECT pas.code, pam.agm_status, pam.agm_name, pam.config_detail, pam.agm_token FROM TB_TR_PDPA_AGENT_MANAGE as pam JOIN TB_TR_PDPA_AGENT_STORE as pas ON pam.ags_id = pas.ags_id;')
@@ -278,7 +280,7 @@ class taskSnif:
                     sys.exit(1)
                 else:
                     rs = list(rs)
-                    rs.insert(3, self.config[2]), rs.insert(4, self.config[3])
+                    rs.insert(3, self.config[3]), rs.insert(4, self.config[4])
                     if self._update(rs, 0) == True and rs[1] == 1:
                         # Sub process.
                         self.sendSyslog(row.rstrip())
@@ -312,11 +314,11 @@ class taskSnif:
 
     def run(self):
         try:
-            if self.config[0] == 0 or self.config[0] == 1:
+            if int(self.details[0]) == 0 or int(self.details[0]) == 1:
                 process = sub.Popen(('sudo', 'tcpdump', '-l'), stdout=sub.PIPE)
                 self.tcpDump(process)
             else:
-                print("[Errno] OS not support, Please check informant on https://alltra.com or contact develop alltraenterprise@gmailcom")
+                print("[Errno] OS not support, Please check informant on https://alltra.com or contact develop alltra@gmail.com")
                 sys.exit(1)
         except Exception as e:
             print(str(e))
