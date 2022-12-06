@@ -19,7 +19,7 @@ class SizeFile:
         self.destination = d
 
 class taskSnif:
-    def __init__(self, path, conn, init, token, detail, timeout=120, user="ftpuser", passwd="ftpuser"):
+    def __init__(self, path, conn, init, token, timeout=120, user="ftpuser", passwd="ftpuser"):
         self._path = path
         self._conn = conn
         self.config = init
