@@ -4,7 +4,6 @@ import subprocess as sub
 import time
 import datetime
 import ftplib
-import ssl
 import os
 from pathlib import Path
 import posixpath
@@ -116,7 +115,7 @@ class taskSnif:
 
     def convertSetToList(self, f):
         rs=[]
-        for n, facts in f:
+        for n in f:
             rs.append(n)
         return rs
 
@@ -157,12 +156,10 @@ class taskSnif:
     # Mode 0
     def sendFTP(self):
         try:
-            ctx = ssl._create_stdlib_context(ssl.PROTOCOL_TLSv1_2)
-            ftp=ftplib.FTP_TLS(context=ctx)
+            ftp=ftplib.FTP_TLS()
             ftp.connect(self.config[3], int(self._port), self._time)
             ftp.sendcmd(f'USER {self.username}')
             ftp.sendcmd(f'PASS {self.password}')
-            ftp.prot_p()
             ftp_directory = []
             ftp.dir(ftp_directory.append)
             ftp_directory = self.convertNoneType(ftp_directory)
@@ -174,7 +171,7 @@ class taskSnif:
             if self.createDirectory(ftp_directory, 0) == 0:
                 ftp.mkd(self._host)
                 ftp.cwd(self._host)
-                ftp_files = self.convertSetToList(ftp.mlsd())
+                ftp_files = self.convertSetToList(ftp.nlst())
                 if len(ftp_files) == 0 and self._host in local_files:
                     f = open(os.path.join(self.detail[-1], local_files[local_files.index(self._host)]),'rb')
                     dest_path=f'/{self._host}/{local_files[local_files.index(self._host)]}'
@@ -184,7 +181,7 @@ class taskSnif:
                     pass
             elif self.createDirectory(ftp_directory, 0) == 1:
                 ftp.cwd(self._host)
-                ftp_files = self.convertSetToList(ftp.mlsd())
+                ftp_files = self.convertSetToList(ftp.nlst())
                 rs = self.checkList(local_files, ftp_files, 0, 0)
                 if rs != 0:
                     f=open(os.path.join(self.detail[-1], rs),'rb')
