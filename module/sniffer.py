@@ -244,7 +244,7 @@ class taskSnif:
             cursor = self._conn.cursor()
             cursor.execute('SELECT pas.code, pam.agm_status, pam.agm_name, pam.config_detail, pam.agm_token FROM TB_TR_PDPA_AGENT_MANAGE as pam JOIN TB_TR_PDPA_AGENT_STORE as pas ON pam.ags_id = pas.ags_id;')
             commit = cursor.fetchall()
-            self._conn = commit()
+            self._conn.commit()
             rs = self.checkToken(commit, 0)
             if rs == -1:
                 print("[Errno] Client not match from manage.")
