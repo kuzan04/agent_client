@@ -229,7 +229,7 @@ class taskSnif:
 
     # Main process.
     def tcpDump(self, p):
-        if int(self.details[0]) == 0:
+        if int(self.detail[0]) == 0:
             for row in iter(p.stdout.readline, b''):
                 cursor = self._conn.cursor()
                 cursor.execute('SELECT pas.code, pam.agm_status, pam.agm_name, pam.config_detail, pam.agm_token FROM TB_TR_PDPA_AGENT_MANAGE as pam JOIN TB_TR_PDPA_AGENT_STORE as pas ON pam.ags_id = pas.ags_id;')
@@ -314,7 +314,7 @@ class taskSnif:
 
     def run(self):
         try:
-            if int(self.details[0]) == 0 or int(self.details[0]) == 1:
+            if int(self.detail[0]) == 0 or int(self.detail[0]) == 1:
                 process = sub.Popen(('sudo', 'tcpdump', '-l'), stdout=sub.PIPE)
                 self.tcpDump(process)
             else:
