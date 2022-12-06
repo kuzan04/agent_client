@@ -4,6 +4,7 @@ import os
 import time
 #import pysftp
 import ftplib
+import ssl
 from os import walk
 from os import listdir
 from os.path import isfile, join
@@ -47,7 +48,8 @@ class dirFile:
                 content_file = open(os.path.join(path, l), 'rb')
                 size = os.path.getsize(os.path.join(path, l))
                 if str(self._port)[-2:] == "21":
-                    ftp=ftplib.FTP_TLS()
+                    ctx = ssl._create_stdlib_context(ssl.PROTOCOL_TLSv1_2)
+                    ftp=ftplib.FTP_TLS(context=ctx)
                     ftp.connect(self._ip, self._port)
                     #try:
                     #    ftp.login(self.user, self.passwd)
@@ -62,6 +64,7 @@ class dirFile:
                     # 530 Login authentication failed.
                     ftp.sendcmd(f"USER {self.user}")
                     ftp.sendcmd(f"PASS {self.passwd}")
+                    ftp.prot_p()
                     # 553 Could not create file.
                     #ftp.cwd(f"/home/{self.user}/")
                     ftp.storbinary(f'STOR {name_file}', content_file)
