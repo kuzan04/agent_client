@@ -117,7 +117,6 @@ if __name__ == "__main__":
             if __init__[0] != "AG4":
                 process = mode.startTask(__config__, __init__, __token__, __ssl__, conn, db)._run()
             else:
-                default = __config__[-1].split(",")
                 sniffer.taskSnif(__config__, __init__, __token__).run()
             # Delay time.
             time.sleep(5)
