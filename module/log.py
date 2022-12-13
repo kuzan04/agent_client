@@ -1,9 +1,9 @@
 import sys
+import os
 import socket
 import time
 import hashlib
 import platform
-import os
 from os import walk
 
 
@@ -82,6 +82,7 @@ class LogHash0:
             time.sleep(5)
             if len(os.listdir(_path)) > 0:
                 _, _, filename = next(walk(_path), (None, None, []))
+                filename = [x for x in filename if x.endswith(".log")]
                 contents_len = len(open(f"{_path+filename[0]}", "rb").readlines())
                 sha256 = self.sha256sum(f"{_path+filename[0]}")
                 md5 = self.md5sum(f"{_path+filename[0]}")
@@ -93,6 +94,7 @@ class LogHash0:
                 pass
         else:
             _, _, filenames = next(walk(_path), (None, None, []))
+            filenames = [x for x in filenames if x.endswith(".log")]
             for l in filenames:
                 try:
                     if l in self._store[_path]:
