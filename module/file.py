@@ -1,17 +1,10 @@
-import sys
 import socket
 import os
-import time
-#import pysftp
 import ftplib
 from os import walk
-from os import listdir
-from os.path import isfile, join
-#from urllib.request import urlopen
-#from urllib.error import URLError, HTTPError
-#from urllib.parse import quote
 import platform
-import re
+#import pysftp
+
 
 class dirFile:
     def __init__(self, path, code, name, ip, port=21, username="ftpuser", password="ftpuser", own=None, group=None):
@@ -26,21 +19,17 @@ class dirFile:
         self._group = group
         self.message = []
 
-    def convertNoneType(self, l):
+    def convertNoneType(self, _l):
         re = []
-        for i in l:
+        for i in _l:
             i = i.split(" ")
             if ".DS_Store" not in i[-1]:
                 re.append(i[-1])
         return re
 
-    # Option
-    def cleanhtml(self, raw_html):
-        cleantext = re.sub(CLEANR, '', raw_html)
-        return cleantext
-
-    def ftpHandle(self, path, count, inform):
+    def ftpHandle(self, path, inform):
         _, _, filenames = next(walk(path), (None, None, []))
+        filenames = [x for x in filenames if x.endswith('.log') or x.endswith('.xls') or x.endswith('.xlsx') or x.endswith('csv') or x.endswith('.evtx')]
         for l in filenames:
             if l != ".DS_Store":
                 name_file = f"{inform}{l}"
@@ -49,21 +38,8 @@ class dirFile:
                 if str(self._port)[-2:] == "21":
                     ftp=ftplib.FTP_TLS()
                     ftp.connect(self._ip, self._port)
-                    #try:
-                    #    ftp.login(self.user, self.passwd)
-                    #     ftp.prot_p()
-                    #    ftp.cwd('/')
-                    #all_file_ftp = []
-                    #ftp.dir(all_file_ftp.append)
-                    #all_file_ftp = self.convertNoneType(all_file_ftp)
-                    #ftp.storbinary('STOR '+ name_file, content_file)
-                    #except ftplib.all_errors as e:
-                    # errCode = str(e).split(None, 1)[0] # Type string
-                    # 530 Login authentication failed.
                     ftp.sendcmd(f"USER {self.user}")
                     ftp.sendcmd(f"PASS {self.passwd}")
-                    # 553 Could not create file.
-                    #ftp.cwd(f"/home/{self.user}/")
                     ftp.storbinary(f'STOR {name_file}', content_file)
                     content_file.close()
                     ftp.quit()
