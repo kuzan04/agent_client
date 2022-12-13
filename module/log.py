@@ -5,9 +5,7 @@ import hashlib
 import platform
 import os
 from os import walk
-from os import listdir
-from os.path import isfile, join
-from datetime import datetime
+
 
 class LogHash0:
     def __init__(self, path, code, name, store, backup):
@@ -24,11 +22,11 @@ class LogHash0:
         mv = memoryview(b)
         try:
             with open(filename, 'rb', buffering=0) as f:
-                for n in iter(lambda : f.readinto(mv), 0):
+                for n in iter(lambda: f.readinto(mv), 0):
                     h.update(mv[:n])
                 return h.hexdigest()
         except Exception as e:
-            print(str(e))
+            print(e)
             sys.exit(1)
 
     def md5sum(self, filename):
@@ -37,11 +35,11 @@ class LogHash0:
         mv = memoryview(b)
         try:
             with open(filename, 'rb', buffering=0) as f:
-                for n in iter(lambda : f.readinto(mv), 0):
+                for n in iter(lambda: f.readinto(mv), 0):
                     h.update(mv[:n])
                 return h.hexdigest()
         except Exception as e:
-            print(str(e))
+            print(e)
             sys.exit(1)
 
     def sha1sum(self, filename):
@@ -50,11 +48,11 @@ class LogHash0:
         mv = memoryview(b)
         try:
             with open(filename, 'rb', buffering=0) as f:
-                for n in iter(lambda : f.readinto(mv), 0):
+                for n in iter(lambda: f.readinto(mv), 0):
                     h.update(mv[:n])
                 return h.hexdigest()
         except Exception as e:
-            print(str(e))
+            print(e)
             sys.exit(1)
 
     def fileMatch(self, old, new, size, i):
@@ -98,11 +96,11 @@ class LogHash0:
             for l in filenames:
                 try:
                     if l in self._store[_path]:
-                        fl = open(f"{_path+l}",'rb')
+                        fl = open(f"{_path+l}", 'rb')
                         le = len(fl.readlines())
                         fl.close()
                         time.sleep(5)
-                        fl1 = open(f"{_path+l}",'rb')
+                        fl1 = open(f"{_path+l}", 'rb')
                         nle = len(fl1.readlines())
                         fl1.close()
                         if nle > le:
@@ -123,12 +121,12 @@ class LogHash0:
                             check = self.fileMatch(self._backup, [_path, l], len(filenames), 0)
                         else:
                             check = self.fileMatch(self._backup, [_path, l], len(filenames), 0)
-                            if check != False and check != -1:
-                                fl = open(f"{_path+check}",'rb')
+                            if check is not False and check != -1:
+                                fl = open(f"{_path+check}", 'rb')
                                 le = len(fl.readlines())
                                 fl.close()
                                 time.sleep(5)
-                                fl1 = open(f"{_path+check}",'rb')
+                                fl1 = open(f"{_path+check}", 'rb')
                                 nle = len(fl1.readlines())
                                 fl1.close()
                                 if nle > le:
@@ -146,12 +144,12 @@ class LogHash0:
                                 self.message.append(f"{self.code}#{self.name}|||{socket.gethostname()}|||{platform.system()} {platform.release()}|||{_path}|||{l}|||{str(contents_len)}|||{sha256}|||{md5}|||{sha1}")
                 except KeyError:
                     check = self.fileMatch(self._backup, [_path, l], len(filenames), 0)
-                    if check != False and check != -1:
-                        fl = open(f"{_path+check}",'rb')
+                    if check is not False and check != -1:
+                        fl = open(f"{_path+check}", 'rb')
                         le = len(fl.readlines())
                         fl.close()
                         time.sleep(5)
-                        fl1 = open(f"{_path+check}",'rb')
+                        fl1 = open(f"{_path+check}", 'rb')
                         nle = len(fl1.readlines())
                         fl1.close()
                         if nle > le:
