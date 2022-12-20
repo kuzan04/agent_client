@@ -1,8 +1,6 @@
 import sys
-import time
 import mysql.connector
 import cx_Oracle
-import datetime
 
 class dbCheck:
     def __init__(self, t, code, name, conn, tables):
