@@ -63,5 +63,5 @@ class dirFile:
                 inform = f"{self.code}@00{i+1}@{self.name}@"
             elif len(str(i)) == 2:
                 inform = f"{self.code}@0{i+1}@{self.name}@"
-            self.ftpHandle(self._path[i], i, inform)
+            self.ftpHandle(self._path[i], inform)
         return self.message
