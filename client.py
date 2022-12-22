@@ -2,17 +2,14 @@
 # Package at used
 #======================================================
 import sys
-import socket
 import netifaces as ni
 import os
-import shutil
 import time
-import datetime
-import re
 import mysql.connector
+import cx_Oracle
 import base64
 import binascii
-from module import cert, mode, connect, sniffer
+from module import mode, sniffer #connect, cert
 #======================================================
 # Convert Base64 to Text
 #======================================================
@@ -86,7 +83,7 @@ def setup(_c):
 # Main
 #======================================================
 if __name__ == "__main__":
-    __location__ = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
+    __location__ = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__))) #os.path.join(os.path.abspath(os.path.dirname(__file__))
     __config__ = ""
     __ssl__ = []
     if "config" in os.listdir(__location__):
@@ -98,7 +95,7 @@ if __name__ == "__main__":
         print("[Errno] Please check directory config missing.")
         sys.exit(1)
     # Connection Main Database.
-    conn = mysql.connector.connect( host="127.0.0.1", user="root", password="P@ssw0rd", auth_plugin="mysql_native_password", database="DOL_PDPA_LOCAL" )
+    conn = mysql.connector.connect(host="127.0.0.1", user="root", password="P@ssw0rd", auth_plugin="mysql_native_password", database="DOL_PDPA_LOCAL")
     # Call fn check.
     c_list = check(os.listdir(__config__), __config__)
     if c_list:
@@ -107,9 +104,14 @@ if __name__ == "__main__":
         if __init__[0] == "AG3":
             detail = __init__[-1].split("&")
             if detail[0] == 1: # MySQL.
-                db = mysql.connector.connect( host=__init__[1], user=__init__[2], password=__init__[3], auth_plugin="mysql_native_password", database=__init__[4] )
-            elif detail[0] == 0: # Hold for oracle database.
-                pass
+                db = mysql.connector.connect(host=__init__[1], user=__init__[2], password=__init__[3], auth_plugin="mysql_native_password", database=__init__[4])
+            elif detail[0] == 0:
+                '''if sys.platform == "linux" or sys.platform == "linux2":
+                    cx_Oracle.init_oracle_client(config_dir=__location__, "/config/instantclient_19_10_ARM64"))
+                elif sys.platform == 'win32':
+                    cx_Oracle.init_oracle_client(config_dir=__location__, "/config/instantclient_21_8_x86_6"))'''
+                dsn = cx_Oracle.makedsn(__init__[1], 1521, service_name=__init__[4])
+                db = cx_Oracle.connect(user=__init__[2], password=__init__[3], dsn=dsn, encoding="UTF-8")
             else: # Hold for another service database.
                 pass
         else:
