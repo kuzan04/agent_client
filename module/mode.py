@@ -63,6 +63,7 @@ class startTask:
                     if self.config[0] == "AG1":
                         cursor.execute('SELECT path, name_file FROM TB_TR_PDPA_AGENT_LOG0_HASH;')
                         backup = cursor.fetchall()
+                        cursor.commit()
                         result, store = log.LogHash0(self.config[-1].split(","), self.config[0], self.config[2], self._store, backup).run()
                         self._store = store
                         self._connect(result)
