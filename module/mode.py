@@ -107,6 +107,7 @@ class startTask:
         client_key = [x for x in self._ssl if ".key" in x.split("/")[-1]].pop()
         c = connect.SSLClient(self.config[3], int(self.config[-2]), client_cert, client_key)
         try:
+            c.connect()
             for i in msg:
                 if i is not None:
                     c.send(i)
