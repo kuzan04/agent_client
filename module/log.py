@@ -55,10 +55,10 @@ class LogHash0:
             print(e)
             sys.exit(1)
 
-    def fileMatch(self, old, new, size, i):
+    def fileMatch(self, new, size, i):
         try:
-            _old = list(old[i])
-            if i == size:
+            _old = list(self._backup[i])
+            if i == len(self._backup):
                 return -1
             elif _old[0] == new[0] and _old[1] == new[1]:
                 if len(self._store) == 0:
@@ -68,7 +68,7 @@ class LogHash0:
                     self._store[_old[0]].append(_old[1])
                 return _old[1]
             else:
-                return self.fileMatch(old, new, size, (i+1))
+                return self.fileMatch(new, size, (i+1))
         except IndexError:
             if len(self._store) == 0:
                 self._store[new[0]] = []
@@ -89,7 +89,7 @@ class LogHash0:
                 sha1 = self.sha1sum(f"{_path+filename[0]}")
                 self.message.append(f"{self.code}#{self.name}|||{socket.gethostname()}|||{platform.system()} {platform.release()}|||{_path}|||{filename[0]}|||{str(contents_len)}|||{sha256}|||{md5}|||{sha1}")
                 self._store[_path] = []
-                self._store[_path].append(filename)
+                self._store[_path].append(filename.pop())
             else:
                 pass
         else:
@@ -120,9 +120,9 @@ class LogHash0:
                             sha1 = self.sha1sum(f"{_path+l}")
                             self.message.append(f"{self.code}#{self.name}|||{socket.gethostname()}|||{platform.system()} {platform.release()}|||{_path}|||{l}|||{str(contents_len)}|||{sha256}|||{md5}|||{sha1}")
                             self._store[_path].append(l)
-                            check = self.fileMatch(self._backup, [_path, l], len(filenames), 0)
+                            check = self.fileMatch([_path, l], len(filenames), 0)
                         else:
-                            check = self.fileMatch(self._backup, [_path, l], len(filenames), 0)
+                            check = self.fileMatch([_path, l], len(filenames), 0)
                             if check is not False and check != -1:
                                 fl = open(f"{_path+check}", 'rb')
                                 le = len(fl.readlines())
@@ -145,7 +145,7 @@ class LogHash0:
                                 sha1 = self.sha1sum(f"{_path+l}")
                                 self.message.append(f"{self.code}#{self.name}|||{socket.gethostname()}|||{platform.system()} {platform.release()}|||{_path}|||{l}|||{str(contents_len)}|||{sha256}|||{md5}|||{sha1}")
                 except KeyError:
-                    check = self.fileMatch(self._backup, [_path, l], len(filenames), 0)
+                    check = self.fileMatch([_path, l], len(filenames), 0)
                     if check is not False and check != -1:
                         fl = open(f"{_path+check}", 'rb')
                         le = len(fl.readlines())
