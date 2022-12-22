@@ -36,7 +36,7 @@ class dbCheck:
         if int(self._type) == 0 or int(self._type) == 1:
             cursor = self._connect.cursor()
             table = table.split(":")
-            cursor.execute(f"SELECT {table[-1]} FROM {table[0]}")
+            cursor.execute(f"SELECT {table[-1]} FROM {table[0]} ORDER BY {table[-1].split(',')[0]}")
             result = list(cursor.fetchall())
             self._connect.commit()
             message = f"{self.code}#{self.name}|||{table[0]}:{table[-1]}|||{str(result)}"
