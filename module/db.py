@@ -2,6 +2,7 @@ import sys
 import mysql.connector
 import cx_Oracle
 
+
 class dbCheck:
     def __init__(self, t, code, name, conn, tables):
         self._type = t

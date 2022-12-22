@@ -1,5 +1,5 @@
 pyOpenSSL
-#pyCryptodome
-#pyCryptodomex
-mysql.connector
-cx_oracle
+mysql-connector-python
+cx_Oracle
+pyftp
+netifaces

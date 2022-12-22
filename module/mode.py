@@ -95,7 +95,7 @@ class startTask:
                                 finally:
                                     f.close()
                         except Exception as e:
-                            print(str(e))
+                            print(e)
                             sys.exit(1)
                         finally:
                             if len(self.config) < 7:
@@ -106,10 +106,12 @@ class startTask:
         client_cert = [x for x in self._ssl if ".crt" in x.split("/")[-1]].pop()
         client_key = [x for x in self._ssl if ".key" in x.split("/")[-1]].pop()
         c = connect.SSLClient(self.config[3], int(self.config[-2]), client_cert, client_key)
-        with c.connect():
-            try:
-                for i in msg:
-                    if i is not None:
-                        c.send(i)
-            finally:
-                c.close()
+        try:
+            for i in msg:
+                if i is not None:
+                    c.send(i)
+        except Exception as e:
+            print(e)
+            sys.exit(1)
+        finally:
+            c.close()
