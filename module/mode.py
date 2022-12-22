@@ -73,7 +73,7 @@ class startTask:
                         self._connect(result)
                         self._start = True
                     elif self.config[0] == "AG3":
-                        prepared = self.config[-2].split(":")
+                        prepared = self.config[-1].split("&")
                         result = db.dbCheck(prepared[0], self.config[0], self.config[2], self._select, prepared[5:]).run()
                         self._connect(result)
                         self._start = True

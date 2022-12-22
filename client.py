@@ -103,15 +103,15 @@ if __name__ == "__main__":
         db = None
         if __init__[0] == "AG3":
             detail = __init__[-1].split("&")
-            if detail[0] == 1: # MySQL.
-                db = mysql.connector.connect(host=__init__[1], user=__init__[2], password=__init__[3], auth_plugin="mysql_native_password", database=__init__[4])
-            elif detail[0] == 0:
+            if int(detail[0]) == 1: # MySQL.
+                db = mysql.connector.connect(host=detail[1], user=detail[2], password=detail[3], auth_plugin="mysql_native_password", database=detail[4])
+            elif int(detail[0]) == 0: #OracleDB.
                 '''if sys.platform == "linux" or sys.platform == "linux2":
                     cx_Oracle.init_oracle_client(config_dir=__location__, "/config/instantclient_19_10_ARM64"))
                 elif sys.platform == 'win32':
                     cx_Oracle.init_oracle_client(config_dir=__location__, "/config/instantclient_21_8_x86_6"))'''
-                dsn = cx_Oracle.makedsn(__init__[1], 1521, service_name=__init__[4])
-                db = cx_Oracle.connect(user=__init__[2], password=__init__[3], dsn=dsn, encoding="UTF-8")
+                dsn = cx_Oracle.makedsn(detail[1], 1521, service_name=detail[4])
+                db = cx_Oracle.connect(user=detail[2], password=detail[3], dsn=dsn, encoding="UTF-8")
             else: # Hold for another service database.
                 pass
         else:
