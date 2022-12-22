@@ -38,6 +38,7 @@ class dbCheck:
             table = table.split(":")
             cursor.execute(f"SELECT {table[-1]} FROM {table[0]}")
             result = list(cursor.fetchall())
+            self._connect.commit()
             message = f"{self.code}#{self.name}|||{table[0]}:{table[-1]}|||{str(result)}"
             self.setMessage(table, result, message)
         else:
