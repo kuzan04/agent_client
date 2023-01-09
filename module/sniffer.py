@@ -1,16 +1,14 @@
 import sys
 import socket
 import subprocess as sub
-import time
 import datetime
 import ftplib
 import os
 from pathlib import Path
-import posixpath
 import logging as log
 import logging.handlers as logHandle
-import mysql.connector
-import base64
+from itertools import chain
+
 
 class SizeFile:
     def __init__(self, n, s, d):
@@ -26,7 +24,8 @@ class taskSnif:
         self._token = token
         self.config = init[:-1]
         self.detail = init[-1].split(",")
-        self._port = 21 if int(init[-1].split(",")[0]) == 0 else 514 # same a > b and 21 or 514
+        self._port = 21 if int(init[-1].split(",")[0]) == 0 else 514
+        # or same a > b and 21 or 514
         self._start = True
         self._format = 'utf-8'
         self._time = timeout
@@ -57,10 +56,10 @@ class taskSnif:
 
     def _updateFile(self, new):
         if "AG1" in new or "AG2" in new or "AG3" in new or "AG4" in new:
-            f=open(f"{self._config}/init.conf", "w+")
-            for i,j in zip(["type", "status", "name", "host", "port", "detail", "tk"], new):
-                f.write(f"{i}:={j}\n")
-            f.close()
+            with open(f"{self._config}/init.conf", "w+") as f:
+                for i, j in zip(["type", "status", "name", "host", "port", "detail", "tk"], new):
+                    f.write(f"{i}:={j}\n")
+                f.close()
 
     def checkList(self, a0, a1, i, j):
         if i == len(a0):
@@ -76,18 +75,35 @@ class taskSnif:
         if i == len(a0):
             return -1
         elif j == len(a1):
-            return self.checkArray(a0,a1,(i+1),j)
+            return self.checkArray(a0, a1, (i+1), j)
         elif a0[i] != a1[j]:
-            return self.checkArray(a0,a1,i,(j+1))
+            return self.checkArray(a0, a1, i, (j+1))
         elif a0[i] == a1[j]:
             return j
 
-    def findLength(self, l, ftp, s):
-        if l[-1] == s:
-            sub0=os.path.getsize(os.path.join(self.detail[-1], l[-1]))
-            ftp.sendcmd('TYPE I') # Switch to Binary
-            sub1=ftp.size(s)
-            return SizeFile(l[-1], sub0, sub1)
+    def find_tuple(self, _tuple, mark, c, i):
+        if i == len(_tuple):
+            return -1
+        elif _tuple[i][1] == mark and _tuple[i][-1] == c:
+            return _tuple[i]
+        else:
+            return self.find_tuple(_tuple, mark, c, (i+1))
+
+    def find_tuple1(self, _t, a, i):
+        if i == len(a):
+            return -1
+        elif list(_t)[0] == a[i]:
+            return i
+        else:
+            return self.find_tuple1(_t, a, (i+1))
+
+    def findLength(self, _l, ftp, s):
+        if _l[-1] == s:
+            sub0 = os.path.getsize(os.path.join(self.detail[-1], _l[-1]))
+            # Switch to Binary
+            ftp.sendcmd('TYPE I')
+            sub1 = ftp.size(s)
+            return SizeFile(_l[-1], sub0, sub1)
         else:
             return 0
 
@@ -113,15 +129,16 @@ class taskSnif:
         elif files[i] == self._host:
             return 1
 
-    def convertSetToList(self, f):
-        rs=[]
+    def convertSetToList(self, f, rs=None):
+        if rs is None:
+            rs = []
         for n in f:
             rs.append(n)
         return rs
 
     def successFile(self):
-        iter_files=sorted(Path(self.detail[-1]).iterdir(), key=os.path.getmtime)
-        files=[i.name for i in iter_files]
+        iter_files = sorted(Path(self.detail[-1]).iterdir(), key=os.path.getmtime)
+        files = [i.name for i in iter_files]
         if len(files) >  1 and '.DS_Store' in files:
             files.remove('.DS_Store')
             if os.path.exists(os.path.join(self.detail[-1], files[0])):
@@ -135,28 +152,29 @@ class taskSnif:
                 return -1
 
     def writeSniff(self, b):
-        date=str(datetime.datetime.now()).replace(" ", ",").split(',')
-        fulltime=date[-1].split('.')
-        date.pop(), fulltime.pop()
-        hour=int(fulltime[0].split(":")[0])
+        date = str(datetime.datetime.now()).replace(" ", ",").split(',')
+        fulltime = date[-1].split('.')
+        # date.pop(),
+        fulltime.pop()
+        hour = int(fulltime[0].split(":")[0])
         # Check minutes => int(time[0].split(":")[-2])
         # Check hours => int(time[0].split(":")[0])
         if hour < 24 and hour == self.time:
-            n=open(self.name, 'a+')
-            n.write(b.decode(self._format)+"\n")
-            n.close()
+            with open(str(self.name), 'a+') as n:
+                n.write(b.decode(self._format)+"\n")
+                n.close()
         else:
             self.successFile()
             self.name = os.path.join(self.detail[-1], f"{self._host},{hour}:00,{date[-1]}.snf")
-            n=open(self.name, 'a+')
-            n.write(b.decode(self._format)+"\n")
-            n.close()
-            self.time=hour
+            with open(str(self.name), 'a+') as n:
+                n.write(b.decode(self._format)+"\n")
+                n.close()
+            self.time = hour
 
     # Mode 0
-    def sendFTP(self):
+    def sendFTP(self, c, r):
         try:
-            ftp=ftplib.FTP_TLS()
+            ftp = ftplib.FTP_TLS()
             ftp.connect(self.config[3], int(self._port), self._time)
             ftp.sendcmd(f'USER {self.username}')
             ftp.sendcmd(f'PASS {self.password}')
@@ -173,10 +191,10 @@ class taskSnif:
                 ftp.cwd(self._host)
                 ftp_files = self.convertSetToList(ftp.nlst())
                 if len(ftp_files) == 0 and self._host in local_files:
-                    f = open(os.path.join(self.detail[-1], local_files[local_files.index(self._host)]),'rb')
-                    dest_path=f'/{self._host}/{local_files[local_files.index(self._host)]}'
-                    ftp.storbinary(f'STOR {dest_path}', f)
-                    f.close()
+                    with open(os.path.join(self.detail[-1], local_files[local_files.index(self._host)]), 'rb') as f:
+                        dest_path = f'/{self._host}/{local_files[local_files.index(self._host)]}'
+                        ftp.storbinary(f'STOR {dest_path}', f)
+                        f.close()
                 else:
                     pass
             elif self.createDirectory(ftp_directory, 0) == 1:
@@ -184,23 +202,37 @@ class taskSnif:
                 ftp_files = self.convertSetToList(ftp.nlst())
                 rs = self.checkList(local_files, ftp_files, 0, 0)
                 if rs != 0:
-                    f=open(os.path.join(self.detail[-1], rs),'rb')
-                    dest_path=f'/{self._host}/{rs}'
-                    ftp.storbinary(f'STOR {dest_path}', f)
-                    f.close()
+                    with open(os.path.join(self.detail[-1], str(rs)), 'rb') as f:
+                        dest_path = f'/{self._host}/{rs}'
+                        ftp.storbinary(f'STOR {dest_path}', f)
+                        f.close()
                 else:
                     rs1 = self.findLength(local_files, ftp, ftp_files[self.checkArray(local_files, ftp_files, 0, 0)])
-                    ftp.sendcmd('TYPE A') # Switch backto ascii
+                    # Switch backto ascii
+                    ftp.sendcmd('TYPE A')
                     if isinstance(rs1, SizeFile):
                         if self.checkLength(rs1) == 1:
-                            f=open(os.path.join(self.detail[-1], local_files[-1]),'rb')
-                            dest_path=f'/{self._host}/{local_files[-1]}'
-                            ftp.storbinary(f'STOR {dest_path}', f)
-                            f.close()
+                            with open(os.path.join(self.detail[-1], local_files[-1]), 'rb') as f:
+                                dest_path=f'/{self._host}/{local_files[-1]}'
+                                ftp.storbinary(f'STOR {dest_path}', f)
+                                f.close()
                         else:
-                            f.close()
+                            pass
             # Exit FTP
             ftp.quit()
+            # Manage history client
+            select = ()
+            select = self.find_tuple(r, self.config[2], "AG4", 0)
+            c.execute('SELECT agm_id FROM TB_TR_PDPA_AGENT_LISTEN_HISTORY GROUP BY agm_id;')
+            find_history = [list(x) for x in c.fetchall()]
+            find_history = list(chain.from_iterable(find_history))
+            idx = self.find_tuple1(select, find_history, 0)
+            if idx == -1:
+                c.execute(f"INSERT INTO TB_TR_PDPA_AGENT_LISTEN_HISTORY (agm_id) VALUE ({select[0]})")
+                self._conn.commit()
+            else:
+                c.execute(f"UPDATE TB_TR_PDPA_AGENT_LISTEN_HISTORY SET _get_ = NOW() WHERE agm_id = {find_history[idx]}")
+                self._conn.commit()
         except Exception as e:
             err=str(e).split(" ")
             if err[0] == 'timed' or err[1] == 'out':
@@ -214,15 +246,16 @@ class taskSnif:
                         print(str(e))
                         print('[Errno] sendFTP() Please check file config.')
                         sys.exit(1)
-                except:
+                except Exception as e:
                     print(str(e))
                     print('[Errno] sendFTP() Please check FTP server.')
                     sys.exit(1)
 
     # Mode 1
-    def sendSyslog(self, m):
+    def sendSyslog(self, m, c, r):
         try:
-            logger=log.getLogger()
+            # History client
+            logger = log.getLogger()
             logger.setLevel(log.INFO) # CRITICAL = 50, ERROR = 40, WARNING = 30, INFO = 20, DEBUG = 10, NOTSET = 0 **NOTE** handler syslog server ip can't sure dynamic must manually.
             handler = logHandle.SysLogHandler(address = (self.config[3], int(self._port)), socktype=socket.SOCK_DGRAM)
             logger.addHandler(handler)
@@ -230,20 +263,36 @@ class taskSnif:
             logger.removeHandler(handler)
             handler.close()
             log.shutdown()
+            # Manage history client
+            select = self.find_tuple(r, self.config[2], "AG4", 0)
+            c.execute('SELECT agm_id FROM TB_TR_PDPA_AGENT_LISTEN_HISTORY GROUP BY agm_id;')
+            find_history = [list(x) for x in c.fetchall()]
+            find_history = list(chain.from_iterable(find_history))
+            idx = self.find_tuple1(select, find_history, 0)
+            if idx == -1:
+                c.execute(f"INSERT INTO TB_TR_PDPA_AGENT_LISTEN_HISTORY (agm_id) VALUE ({select[0]})")
+                self._conn.commit()
+            else:
+                c.execute(f"UPDATE TB_TR_PDPA_AGENT_LISTEN_HISTORY SET _get_ = NOW() WHERE agm_id = {find_history[idx]}")
+                self._conn.commit()
         except Exception as e:
-            print(str(e))
+            print(e)
             sys.exit(1)
 
     # Main process.
     def tcpDump(self, p):
+        cursor = self._conn.cursor()
+        cursor.execute("SELECT pam.agm_id, pam.agm_name, pas.code FROM TB_TR_PDPA_AGENT_MANAGE as pam JOIN TB_TR_PDPA_AGENT_STORE as pas ON pam.ags_id = pas.ags_id;")
+        res = cursor.fetchall()
+        self._conn.commit()
         for row in iter(p.stdout.readline, b''):
             # Sub process.
             if int(self.detail[0]) == 0:
                 self.writeSniff(row.rstrip())
-                self.sendFTP()
+                self.sendFTP(cursor, res)
             elif int(self.detail[0]) == 1:
                 # Sub process.
-                self.sendSyslog(row.rstrip())
+                self.sendSyslog(row.rstrip(), cursor, res)
 
     def run(self):
         while self._start:
