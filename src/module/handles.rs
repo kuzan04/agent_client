@@ -2,6 +2,7 @@ use tokio::net::TcpStream;
 use tokio::io::AsyncWriteExt;
 use sqlx::{FromRow, mysql::MySqlPool};
 use sys_info::{hostname, os_release};
+
 use std::{env, fs};
 use std::process;
 
@@ -97,14 +98,12 @@ impl Handler {
                     },
                     "AG2" => {
                         let details = env::var("DETAILS").unwrap().split(',').map(|s| s.to_string()).collect::<Vec<String>>();
+                        let mix = vec![env::var("TYPE").unwrap(), env::var("NAME").unwrap(), hostname, format!("{}-{}", platform, release)];
                         match DirectoryFile::new(
-                            env::var("TYPE").unwrap(),
-                            env::var("NAME").unwrap(),
-                            hostname,
-                            format!("{}-{}", platform, release),
+                            mix,
                             details,
                             env::var("HOST").unwrap(),
-                            21,
+                            1021,
                             "ftpuser".to_string(),
                             "ftpuser".to_string(),
                         ).build().await {
@@ -135,7 +134,6 @@ impl Handler {
 
     pub async fn task(&mut self) {
         loop {
-            let mut stream = TcpStream::connect(format!("{}:{}", &self.host, &self.port)).await.expect("Failed to connect to server");
             let query = "SELECT pas.code, am.agm_name, am.config_detail, am.agm_status, am.agm_token FROM TB_TR_PDPA_AGENT_MANAGE as am JOIN TB_TR_PDPA_AGENT_STORE as pas ON am.ags_id = pas.ags_id";
             let result_manager: Vec<FilterAgentManage>= sqlx::query(query)
                 .fetch_all(&self.db)
@@ -174,26 +172,17 @@ impl Handler {
                     })
                     .collect();
                 for i in message {
+                    let mut stream = TcpStream::connect(format!("{}:{}", &self.host, &self.port)).await.expect("Failed to connect to server");
                     if let Err(error) = stream.write_all(i.as_bytes()).await {
                         println!("Failed to write to stream: {}", error);
                     }
+                    std::thread::sleep(std::time::Duration::from_secs(1));
+                    drop(stream);
                 }
-                // let mut buffer = [0; 1024];
-                // match reader.read(&mut buffer).await {
-                //     Ok(bytes_read) => {
-                //         let get_response = String::from_utf8_lossy(&buffer[..bytes_read]).to_string();
-                //         match get_response.as_str() {
-                //             "Success" => continue,
-                //             _ => continue,
-                //         };
-                //     },
-                //     Err(_) => continue,
-                // }
             } else {
                 println!("[Error] Check token client for web alltra agent...");
                 process::exit(1);
             }
-            drop(stream);
         }
         // Separate details to use.
         // let details = self.details.get("DETAILS").unwrap().split(',').map(|s| s.to_string()).collect::<Vec<String>>();
@@ -212,5 +201,10 @@ impl Handler {
         // );
         //
         // drop(stream);
+        // let mut buffer = [0; 1024];
+        // match stream.read(&mut buffer).await {
+        //     Ok(_) => continue,
+        //     Err(_) => continue,
+        // }
     }
 }

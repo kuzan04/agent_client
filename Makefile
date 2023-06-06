@@ -13,7 +13,7 @@ install:
 	cargo add sha1@0.10.5
 	cargo add md5@0.7.0
 	# Agent Directory file.
-	cargo add ftp@3.0.1 -F "secure"
+	cargo add async_ftp@6.0.0 -F "secure"
 	cargo add ssh2@0.9.4
 	# Run same nodemon.
 	cargo install cargo-watch@8.4.0
