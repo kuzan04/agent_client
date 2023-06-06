@@ -8,7 +8,7 @@ use std::process;
 use crate::model::FilterAgentManage;
 use crate::module::{
     log0::LogHash,
-    // file::DirectoryFile,
+    file::DirectoryFile,
     // db::DatabaseCheck,
     // sniffer::TaskSniffer,
 };
@@ -96,8 +96,21 @@ impl Handler {
                             }
                     },
                     "AG2" => {
-                        println!("2");
-                        vec!["Hello".to_string()]
+                        let details = env::var("DETAILS").unwrap().split(',').map(|s| s.to_string()).collect::<Vec<String>>();
+                        match DirectoryFile::new(
+                            env::var("TYPE").unwrap(),
+                            env::var("NAME").unwrap(),
+                            hostname,
+                            format!("{}-{}", platform, release),
+                            details,
+                            env::var("HOST").unwrap(),
+                            21,
+                            "ftpuser".to_string(),
+                            "ftpuser".to_string(),
+                        ).build().await {
+                                Ok(result) => result,
+                                Err(err) => vec![format!("[Failed] {}", err)]
+                            }
                     },
                     "AG3" => {
                         println!("3");
