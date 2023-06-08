@@ -99,24 +99,17 @@ pub enum PoolType {
     OrPool(OraclePool),
 }
 
-// #[derive(Debug)]
-// pub struct DynanmicStruct {
-//     data: HashMap<String, Box<dyn Any>>,
-// }
-//
-// impl DynanmicStruct {
-//     pub fn new() -> Self {
-//         DynanmicStruct { data: HashMap::new() }
-//     }
-//
-//     pub fn insert<T: 'static>(&mut self, key: String, value: T) {
-//         self.data.insert(key, Box::new(value));
-//     }
-//
-//     pub fn get<T: 'static>(&self, key: &str) -> Option<&T> {
-//         match self.data.get(key) {
-//             Some(value) => value.downcast_ref::<T>(),
-//             None => None,
-//         }
-//     }
-// }
+#[derive(Debug)]
+#[allow(dead_code)]
+pub struct SizeFile {
+    name: String,
+    source: String,
+    destination: String,
+}
+
+#[allow(dead_code)]
+impl SizeFile {
+    pub fn new(name: String, source: String, destination: String) -> Self {
+        Self { name, source, destination }
+    }
+}

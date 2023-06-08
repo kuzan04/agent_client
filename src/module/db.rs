@@ -261,6 +261,7 @@ impl DatabaseCheck {
                             .into_iter()
                             .map(|row| Self::set_query(self._type, use_column.clone(), PoolRow::OrRow(row.unwrap())))
                             .collect();
+                        conn.close().unwrap();
                     },
                     Err(err) => {
                         println!("[Failed] {}", err);

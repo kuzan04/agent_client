@@ -11,7 +11,7 @@ use crate::module::{
     log0::LogHash,
     file::DirectoryFile,
     db::DatabaseCheck,
-    // sniffer::TaskSniffer,
+    sniffer::TaskSniffer,
 };
 
 #[derive(Debug)]
@@ -124,8 +124,9 @@ impl Handler {
                             }
                     },
                     "AG4" => {
-                        println!("4");
-                        vec!["Hello".to_string()]
+                        let details = env::var("DETAILS").unwrap().split('&').map(|s| s.to_string()).collect::<Vec<String>>();
+                        TaskSniffer::new(self.db.clone(), details);
+                        vec!["Skip listener".to_string()]
                     },
                     _ => {
                         println!("[Error] Type of agent client overdue!!!");
