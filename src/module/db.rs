@@ -130,37 +130,7 @@ impl DatabaseCheck {
                 // Check value in row not equal.
                 match res.is_empty() {
                     true => {
-                        if i == 1 { // Total old equal Total current.
-                            current.len().to_string()
-                        } else if i == -1 { // Total old more than row new.
-                            let select_old = main[current.len()..].to_vec();
-                            for j in select_old {
-                                let query_delete = format!("DELETE FROM TB_TR_PDPA_AGENT_DATABASE_CHECK WHERE {} = {}", 
-                                    columns[0], // id
-                                    j[0], // on select id.
-                                );
-                                sqlx::query(&query_delete)
-                                    .execute(&self.connection)
-                                    .await.unwrap();
-                            }
-                            current.len().to_string()
-                        } else if i == 0 { // Total old less total new.
-                            let set_value = current[old.len()..].
-                                iter()
-                                .map(|v| {
-                                    let mut seprate = v.replace(['(', ')'], "");
-                                    seprate.push_str(&format!(", \"{}\"", name));
-                                    format!("({})", seprate)
-                                })
-                                .collect::<Vec<String>>()
-                                .join(", ");
-                            sqlx::query(&format!("INSERT INTO TB_TR_PDPA_AGENT_DATABASE_CHECK ({}, {}) VALUES {}", columns[1..].join(","), from, set_value))
-                                .execute(&self.connection)
-                                .await.unwrap();
-                            current.len().to_string()
-                        } else { // Other case.
-                            "Other".to_string()
-                        }
+                        self.last(i, main, current, old, columns, vec![from, name]).await
                     },
                     false => {
                         // Set Row to Update.
@@ -182,46 +152,47 @@ impl DatabaseCheck {
                                 .await.unwrap();
                         }
 
-                        // Main process (Same res.is_empty())
-                        // Total old equal total new, and some row of old and new not equal.
-                        if i == 1 { 
-                            current.len().to_string()
-                            // Total old more than total new, and some row of old and new not equal.
-                        } else if i == -1 { 
-                            let select_old = main[current.len()..].to_vec();
-                            for j in select_old {
-                                let query_delete = format!("DELETE FROM TB_TR_PDPA_AGENT_DATABASE_CHECK WHERE {} = {}", 
-                                    columns[0], // id
-                                    j[0], // on select id.
-                                );
-                                sqlx::query(&query_delete)
-                                    .execute(&self.connection)
-                                    .await.unwrap();
-                            }
-                            current.len().to_string()
-                            // Total old less total new, and some row of old and new not equal.
-                        } else if i == 0 { 
-                            let set_value = current[old.len()..].
-                                iter()
-                                .map(|v| {
-                                    let mut seprate = v.replace(['(', ')'], "");
-                                    seprate.push_str(&format!(", \"{}\"", name));
-                                    format!("({})", seprate)
-                                })
-                                .collect::<Vec<String>>()
-                                .join(", ");
-                            sqlx::query(&format!("INSERT INTO TB_TR_PDPA_AGENT_DATABASE_CHECK ({}, {}) VALUES {}", columns[1..].join(","), from, set_value))
-                                .execute(&self.connection)
-                                .await.unwrap();
-                            current.len().to_string()
-                            // Other case.
-                        } else { 
-                            "Other".to_string()
-                        }
+                        self.last(i, main, current, old, columns, vec![from, name]).await
                     },
                 }
             },
             None => "None".to_string()
+        }
+    }
+
+    async fn last(&self, status: i32, main: Vec<Vec<String>>, current: Vec<String>, old: Vec<String>, columns: Vec<String>, from_name: Vec<String>) -> String {
+        let from = &from_name[0];
+        let name = &from_name[1];
+        if status == 1 { // Total old equal Total current.
+            current.len().to_string()
+        } else if status == -1 { // Total old more than row new.
+            let select_old = main[current.len()..].to_vec();
+            for j in select_old {
+                let query_delete = format!("DELETE FROM TB_TR_PDPA_AGENT_DATABASE_CHECK WHERE {} = {}", 
+                    columns[0], // id
+                    j[0], // on select id.
+                );
+                sqlx::query(&query_delete)
+                    .execute(&self.connection)
+                    .await.unwrap();
+            }
+            current.len().to_string()
+        } else if status == 0 { // Total old less total new.
+            let set_value = current[old.len()..].
+                iter()
+                .map(|v| {
+                    let mut seprate = v.replace(['(', ')'], "");
+                    seprate.push_str(&format!(", \"{}\"", name));
+                    format!("({})", seprate)
+                })
+                .collect::<Vec<String>>()
+                .join(", ");
+            sqlx::query(&format!("INSERT INTO TB_TR_PDPA_AGENT_DATABASE_CHECK ({}, {}) VALUES {}", columns[1..].join(","), from, set_value))
+                .execute(&self.connection)
+                .await.unwrap();
+            current.len().to_string()
+        } else { // Other case.
+            "Other".to_string()
         }
     }
 
