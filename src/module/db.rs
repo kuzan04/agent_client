@@ -1,13 +1,13 @@
 use sqlx::{MySqlPool, Row};
 use oracle::{
-    pool::{PoolBuilder, Pool as OraclePool, CloseMode},
+    pool::{PoolBuilder, CloseMode},
     Error as OracleError
 };
 use chrono::{NaiveDate, NaiveDateTime};
 
 use std::env;
 
-use crate::model::{DateOrDateTime, PoolRow};
+use crate::model::{DateOrDateTime, PoolRow, PoolType};
 
 #[derive(Debug)]
 pub struct DatabaseCheck {
@@ -54,7 +54,7 @@ impl DatabaseCheck {
                                     let new_value: u64 = query.get(i.trim());
                                     result.push(new_value.to_string())
                                 }
-                                "DATE" | "DATETIME" | "DATE_TIME" => {
+                                "DATE" | "DATETIME" | "DATE_TIME" | "TIMESTAMP" => {
                                     let new_value = match query.try_get::<NaiveDate, _>(i.trim()) {
                                         Ok(date) => DateOrDateTime::Date(date),
                                         Err(_) => DateOrDateTime::DateTime(query.try_get::<NaiveDateTime, _>(i.trim()).unwrap()),
@@ -88,7 +88,7 @@ impl DatabaseCheck {
                                     let new_value: u64 = query.get(i).unwrap();
                                     result.push(new_value.to_string())
                                 }
-                                "DATE" | "DATETIME" | "DATE_TIME" => {
+                                "DATE" | "DATETIME" | "DATE_TIME" | "TIMESTAMP" => {
                                     let new_value = match query.get(i) {
                                         Ok(date) => DateOrDateTime::Date(date),
                                         Err(_) => DateOrDateTime::DateTime(query.get(i).unwrap()),
@@ -207,9 +207,9 @@ impl DatabaseCheck {
         }
     }
 
-    // Type of MySql
+    // Mix type db and check pass enum.
     #[allow(clippy::needless_collect, unused_must_use)]
-    async fn mysql(&self, pool: MySqlPool, main_id: String, from: String, table: String, columns: Vec<String>) -> String {
+    async fn manage(&self, pool: PoolType, main_id: String, from: String, table: String, columns: Vec<String>) -> String {
         let mut all_columns = columns.clone();
         all_columns.insert(0, main_id);
 
@@ -246,10 +246,29 @@ impl DatabaseCheck {
 
         let query_client = format!("SELECT {} FROM {} ORDER BY {} ASC", use_column.join(","), use_table[0], use_column[0]);
 
-        let result_client: Vec<Vec<String>> = sqlx::query(&query_client).fetch_all(&pool).await.unwrap()
-            .into_iter()
-            .map(|row| Self::set_query(self._type, use_column.clone(), PoolRow::MyRow(row)))
-            .collect();
+        let result_client: Vec<Vec<String>>;
+        match pool {
+            PoolType::MyPool(pool) => {
+                result_client = sqlx::query(&query_client).fetch_all(&pool).await.unwrap()
+                    .into_iter()
+                    .map(|row| Self::set_query(self._type, use_column.clone(), PoolRow::MyRow(row)))
+                    .collect();
+            },
+            PoolType::OrPool(pool) => {
+                match pool.get() {
+                    Ok(conn) => {
+                        result_client = conn.query(&query_client, &[]).unwrap()
+                            .into_iter()
+                            .map(|row| Self::set_query(self._type, use_column.clone(), PoolRow::OrRow(row.unwrap())))
+                            .collect();
+                    },
+                    Err(err) => {
+                        println!("[Failed] {}", err);
+                        std::process::exit(1);
+                    }
+                }
+            }
+        }
 
         // Main process.
         match result_main.len() {
@@ -277,60 +296,6 @@ impl DatabaseCheck {
         }
     }
     
-    // Type of Oracle
-    async fn oracle(&self, pool: OraclePool, main_id: String, from: String, table: String, columns: Vec<String>) -> String {
-        match pool.get() {
-            Ok(conn) => {
-                // Same mysql.
-                let mut all_columns = columns.clone();
-                all_columns.insert(0, main_id);
-
-                // Delete all not client.
-                sqlx::query(&format!("DELETE FROM TB_TR_PDPA_AGENT_DATABASE_CHECK WHERE {} IS NULL", from.clone())).execute(&self.connection).await.unwrap();
-
-                // From main.
-                let query = format!("SELECT {} FROM TB_TR_PDPA_AGENT_DATABASE_CHECK WHERE {} = '{}' ORDER BY {} ASC",
-                    all_columns.join(","),
-                    from,
-                    table,
-                    all_columns[0],
-                );
-                let result_main: Vec<Vec<String>> = sqlx::query(&query).fetch_all(&self.connection).await.unwrap()
-                    .into_iter()
-                    .map(|row| {
-                        let mut result: Vec<String> = vec![];
-                        for i in &all_columns {
-                            result.push(match row.try_get::<String, _>(i.as_str()) {
-                                Ok(val) => val,
-                                Err(_) => match row.try_get::<i32, _>(i.as_str()) {
-                                    Ok(val1) => val1.to_string(),
-                                    Err(_) => "NULL".to_string()
-                                },
-                            });
-                        }
-                        result
-                    })
-                    .collect();
-
-                // of client.
-                let mut use_table = table.split(':').collect::<Vec<&str>>();
-                let use_column = use_table.pop().unwrap().split(',').map(|s| s.to_string()).collect::<Vec<String>>();
-
-                let query_client = format!("SELECT {} FROM {} ORDER BY {} ASC", use_column.join(","), use_table[0], use_column[0]);
-
-                let result_client: Vec<Vec<String>> = conn.query(&query_client, &[]).unwrap()
-                    .into_iter()
-                    .map(|row| Self::set_query(self._type, use_column.clone(), PoolRow::OrRow(row.unwrap())))
-                    .collect();
-            },
-            Err(err) => {
-                println!("[Failed] {}", err);
-                std::process::exit(1);
-            }
-        }
-        "Test".to_string()
-    }
-
     #[allow(unused_must_use)]
     pub async fn build(&self) -> Result<Vec<String>, std::io::Error> {
         let mut message = vec![];
@@ -357,7 +322,7 @@ impl DatabaseCheck {
                 1 => {
                     match MySqlPool::connect(&format!("mysql://{}:{}@{}:{}/{}", self.user, self.passwd, self.host, 3306, self.db_name)).await {
                         Ok(pool) => {
-                            let result = format!("{}|||{}", i, self.mysql(pool.clone(), column_id.to_owned(), from_client.to_owned(), i.to_string(), select_field.to_vec()).await);
+                            let result = format!("{}|||{}", i, self.manage(PoolType::MyPool(pool.clone()), column_id.to_owned(), from_client.to_owned(), i.to_string(), select_field.to_vec()).await);
                             pool.close();
                             message.push(result);
                         },
@@ -370,7 +335,7 @@ impl DatabaseCheck {
                 0 => {
                     match PoolBuilder::new(&self.user, &self.passwd, &format!("//{}:{}/{}", self.host, 1521, self.db_name)).max_connections(10).build() {
                         Ok(pool) => {
-                            let result = format!("{}|||{}", i, self.oracle(pool.clone(), column_id.to_owned(), from_client.to_owned(), i.to_string(), select_field.to_vec()).await);
+                            let result = format!("{}|||{}", i, self.manage(PoolType::OrPool(pool.clone()), column_id.to_owned(), from_client.to_owned(), i.to_string(), select_field.to_vec()).await);
                             pool.close(&CloseMode::Default);
                             message.push(result);
                         },

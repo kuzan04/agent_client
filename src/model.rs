@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
-use sqlx::{FromRow, mysql::MySqlRow, Row};
-use oracle::Row as OracleRow;
+use sqlx::{FromRow, mysql::MySqlRow, Row, MySqlPool};
+use oracle::{Row as OracleRow, pool::Pool as OraclePool};
 use chrono::{NaiveDate, NaiveDateTime};
 
 #[derive(Debug, Deserialize, Serialize, Clone, PartialEq)]
@@ -91,6 +91,12 @@ impl ToString for DateOrDateTime {
 pub enum PoolRow {
     MyRow(MySqlRow),
     OrRow(OracleRow),
+}
+
+#[derive(Debug)]
+pub enum PoolType {
+    MyPool(MySqlPool),
+    OrPool(OraclePool),
 }
 
 // #[derive(Debug)]
