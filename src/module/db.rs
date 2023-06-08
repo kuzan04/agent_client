@@ -122,7 +122,7 @@ impl DatabaseCheck {
         }
     }
 
-    async fn statement(&self, main: Vec<Vec<String>>, old: Vec<String>, current: Vec<String>, columns: Vec<String>) -> String {
+    async fn statement(&self, main: Vec<Vec<String>>, old: Vec<String>, current: Vec<String>, columns: Vec<String>, from: String, name: String) -> String {
         // Process check
         let result_check = Self::check_row(old.clone(), current.clone()).await;
         match result_check {
@@ -145,7 +145,16 @@ impl DatabaseCheck {
                             }
                             current.len().to_string()
                         } else if i == 0 { // Total old less total new.
-                            sqlx::query(&format!("INSERT INTO TB_TR_PDPA_AGENT_DATABASE_CHECK ({}) VALUES {}", columns[1..].join(","), current[old.len()..].join(", ")))
+                            let set_value = current[old.len()..].
+                                iter()
+                                .map(|v| {
+                                    let mut seprate = v.replace(['(', ')'], "");
+                                    seprate.push_str(&format!(", \"{}\"", name));
+                                    format!("({})", seprate)
+                                })
+                                .collect::<Vec<String>>()
+                                .join(", ");
+                            sqlx::query(&format!("INSERT INTO TB_TR_PDPA_AGENT_DATABASE_CHECK ({}, {}) VALUES {}", columns[1..].join(","), from, set_value))
                                 .execute(&self.connection)
                                 .await.unwrap();
                             current.len().to_string()
@@ -192,7 +201,16 @@ impl DatabaseCheck {
                             current.len().to_string()
                             // Total old less total new, and some row of old and new not equal.
                         } else if i == 0 { 
-                            sqlx::query(&format!("INSERT INTO TB_TR_PDPA_AGENT_DATABASE_CHECK ({}) VALUES {}", columns[1..].join(","), current[old.len()..].join(", ")))
+                            let set_value = current[old.len()..].
+                                iter()
+                                .map(|v| {
+                                    let mut seprate = v.replace(['(', ')'], "");
+                                    seprate.push_str(&format!(", \"{}\"", name));
+                                    format!("({})", seprate)
+                                })
+                                .collect::<Vec<String>>()
+                                .join(", ");
+                            sqlx::query(&format!("INSERT INTO TB_TR_PDPA_AGENT_DATABASE_CHECK ({}, {}) VALUES {}", columns[1..].join(","), from, set_value))
                                 .execute(&self.connection)
                                 .await.unwrap();
                             current.len().to_string()
@@ -292,7 +310,7 @@ impl DatabaseCheck {
                 let new_value: Vec<String> = result_client.clone().into_iter().map(|o| {
                     format!("({})", o.iter().map(|v| format!("\'{}\'", v)).collect::<Vec<String>>().join(","))
                 }).collect();
-                self.statement(result_main, old_value, new_value, all_columns).await
+                self.statement(result_main, old_value, new_value, all_columns, from, table).await
             }
         }
     }
