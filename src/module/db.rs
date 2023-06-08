@@ -1,4 +1,4 @@
-use sqlx::{MySqlPool, Row, mysql::MySqlRow};
+use sqlx::{MySqlPool, Row};
 use oracle::{
     pool::{PoolBuilder, Pool as OraclePool, CloseMode},
     Error as OracleError
@@ -42,11 +42,11 @@ impl DatabaseCheck {
                         Err(e) => {
                             let err: Vec<String> = e.to_string().split('`').into_iter().map(|s| s.to_string()).collect();
                             match err[err.len() - 2].as_str() {
-                                "INT" | "BIGINT" => {
+                                "INT" | "BIGINT" | "TINYINT" => {
                                     let new_value: i64 = query.get(i.trim()); // int = i32, bigint = i64
                                     result.push(new_value.to_string())
                                 },
-                                "TINYINT" | "BOOLEAN" | "BOOL" => {
+                                "BOOLEAN" | "BOOL" => {
                                     let new_value: bool = query.get(i.trim());
                                     result.push(new_value.to_string())
                                 }
@@ -68,30 +68,30 @@ impl DatabaseCheck {
                 }
             },
             PoolRow::OrRow(query) => {
-                for i in column {
-                    let value: Result<Option<String>, OracleError> = query.get(i.trim());
+                for i in 0..column.len() {
+                    let value: Result<Option<String>, OracleError> = query.get(i);
                     match value {
                         Ok(Some(val)) => result.push(val),
                         Ok(None) => result.push("NULL".to_string()),
                         Err(e) => {
                             let err: Vec<String> = e.to_string().split('`').into_iter().map(|s| s.to_string()).collect();
                             match err[err.len() - 2].as_str() {
-                                "INT" | "BIGINT" => {
-                                    let new_value: i64 = query.get(i.trim()); // int = i32, bigint = i64
+                                "INT" | "BIGINT" | "TINYINT" => {
+                                    let new_value: i64 = query.get(i).unwrap(); // int = i32, bigint = i64
                                     result.push(new_value.to_string())
                                 },
-                                "TINYINT" | "BOOLEAN" | "BOOL" => {
-                                    let new_value: bool = query.get(i.trim());
+                                "BOOLEAN" | "BOOL" => {
+                                    let new_value: bool = query.get(i).unwrap();
                                     result.push(new_value.to_string())
                                 }
                                 "FLOAT" | "DOUBLE" | "DOUBLE PRECISION" | "DECIMAL" | "DEC" => {
-                                    let new_value: u64 = query.get(i.trim());
+                                    let new_value: u64 = query.get(i).unwrap();
                                     result.push(new_value.to_string())
                                 }
                                 "DATE" | "DATETIME" | "DATE_TIME" => {
-                                    let new_value = match query.try_get::<NaiveDate, _>(i.trim()) {
+                                    let new_value = match query.get(i) {
                                         Ok(date) => DateOrDateTime::Date(date),
-                                        Err(_) => DateOrDateTime::DateTime(query.try_get::<NaiveDateTime, _>(i.trim()).unwrap()),
+                                        Err(_) => DateOrDateTime::DateTime(query.get(i).unwrap()),
                                     };
                                     result.push(new_value.to_string())
                                 },

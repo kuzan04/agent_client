@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
-use sqlx::{FromRow, mysql::MySqlRow, Row, Pool};
-use oracle::{pool::Pool as OraclePool, Row as OracleRow};
+use sqlx::{FromRow, mysql::MySqlRow, Row};
+use oracle::Row as OracleRow;
 use chrono::{NaiveDate, NaiveDateTime};
 
 #[derive(Debug, Deserialize, Serialize, Clone, PartialEq)]
