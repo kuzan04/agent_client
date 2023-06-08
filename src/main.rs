@@ -8,6 +8,7 @@ use sqlx::mysql::MySqlPoolOptions;
 // Packge already exist after install Rust Language.
 use std::fs::{File, metadata, remove_file};
 use std::io::{self, Write, BufReader, BufRead};
+use std::env;
 
 mod module;
 mod model;
@@ -24,7 +25,7 @@ fn set_env(input: Vec<&str>) {
         file.write_all(i.as_bytes()).unwrap();
     }
     let line_count = BufReader::new(File::open(".env").unwrap()).lines().count();
-    if line_count < 7 {
+    if line_count != 7 {
         remove_file(".env").unwrap();
         println!("[Error] Token incorrect!");
         std::process::exit(1);
@@ -60,10 +61,11 @@ async fn main() {
         }
     }
     
-    let database_url = "mysql://root:P@ssw0rd@localhost:3306/DOL_PDPA_LOCAL";
+    env::set_var("DB_MAIN", "DOL_PDPA_LOCAL");
+    let database_url = format!("mysql://root:P@ssw0rd@localhost:3306/{}", env::var("DB_MAIN").unwrap_or_else(|_| "DOL_PDPA".to_string()));
     let pool = match MySqlPoolOptions::new()
         .max_connections(10)
-        .connect(database_url)
+        .connect(&database_url)
         .await {
             Ok(pool) => {
                 pool

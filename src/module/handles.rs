@@ -10,7 +10,7 @@ use crate::model::FilterAgentManage;
 use crate::module::{
     log0::LogHash,
     file::DirectoryFile,
-    // db::DatabaseCheck,
+    db::DatabaseCheck,
     // sniffer::TaskSniffer,
 };
 
@@ -103,7 +103,7 @@ impl Handler {
                             mix,
                             details,
                             env::var("HOST").unwrap(),
-                            1021,
+                            21,
                             "ftpuser".to_string(),
                             "ftpuser".to_string(),
                         ).build().await {
@@ -112,8 +112,16 @@ impl Handler {
                             }
                     },
                     "AG3" => {
-                        println!("3");
-                        vec!["Hello".to_string()]
+                        let mut details = env::var("DETAILS").unwrap().split('&').map(|s| s.to_string()).collect::<Vec<String>>();
+                        let db_type = details.remove(0).parse::<i32>().unwrap_or(-1);
+                        match DatabaseCheck::new(
+                            self.db.clone(),
+                            db_type,
+                            details,
+                        ).build().await {
+                                Ok(result) => result,
+                                Err(err) => vec![format!("[Failed] {}", err)],
+                            }
                     },
                     "AG4" => {
                         println!("4");
@@ -151,6 +159,7 @@ impl Handler {
                     process::exit(1);
                 }
             };
+
             let reverse_details = FilterAgentManage::new(
                 env::var("TYPE").unwrap_or_else(|_| "unknow".to_string()),
                 env::var("NAME").unwrap_or_else(|_| "unknow".to_string()),
@@ -158,6 +167,7 @@ impl Handler {
                 env::var("DETAILS").unwrap_or_else(|_| "unknow".to_string()),
                 env::var("TOKEN").unwrap_or_else(|_| "unknow".to_string()),
             );
+
             // Main task if statement check 2 condition is struct (Object) not default
             // and status client start run.
             if result_filter != FilterAgentManage::default() && Self::set_status(result_filter, reverse_details).await {
@@ -180,26 +190,12 @@ impl Handler {
                     drop(stream);
                 }
             } else {
-                println!("[Error] Check token client for web alltra agent...");
-                process::exit(1);
+                continue;
             }
         }
         // Separate details to use.
         // let details = self.details.get("DETAILS").unwrap().split(',').map(|s| s.to_string()).collect::<Vec<String>>();
 
-        //
-        // Agent Dir/File (AG2)
-        // let inform = format!("{}@00{}@{}", self.details.get("TYPE").unwrap(), 1, self.details.get("NAME").unwrap());
-        // let msg = format!("{}|||{}|||{}-{}|||{}|||{}|||{}",
-        //     self.details.get("NAME").unwrap(),
-        //     hostname,
-        //     platform,
-        //     release,
-        //     self.details.get("DETAILS").unwrap(),
-        //     "SAMPLE1.xls",
-        //     "16384"
-        // );
-        //
         // drop(stream);
         // let mut buffer = [0; 1024];
         // match stream.read(&mut buffer).await {

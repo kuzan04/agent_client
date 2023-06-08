@@ -24,7 +24,7 @@ impl DirectoryFile {
     #[allow(unused_must_use)]
     async fn ftp_handle(&self, name: String, file: String) {
         match self.ftp_port {
-            1021 => {
+            21 => {
                 // Set varriable to use put file ftp.
                 let mut buffer = Vec::new();
                 File::open(file).expect("Failed to open file").read_to_end(&mut buffer).expect("Failed to read file");
@@ -73,7 +73,7 @@ impl DirectoryFile {
             let inform = format!(
                 "{}@{}{}@{}@",
                 self.details[0], // TYPE of client.
-                digits[0..(digits.len() - (i+1))].join(""),
+                digits[0..(digits.len() - (i+1).to_string().chars().count())].join(""),
                 (i+1),
                 self.details[1] // NAME of client.
             );

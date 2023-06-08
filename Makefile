@@ -15,6 +15,8 @@ install:
 	# Agent Directory file.
 	cargo add async_ftp@6.0.0 -F "secure"
 	cargo add ssh2@0.9.4
+	# Agent Database check.
+	cargo add oracle@0.5.7 -F "chrono stmt_without_lifetime aq_unstable"
 	# Run same nodemon.
 	cargo install cargo-watch@8.4.0
 

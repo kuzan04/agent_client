@@ -1,7 +1,6 @@
 use serde::{Deserialize, Serialize};
 use sqlx::{FromRow, mysql::MySqlRow, Row};
-// use std::any::Any;
-// use std::collections::HashMap;
+use chrono::{NaiveDate, NaiveDateTime};
 
 #[derive(Debug, Deserialize, Serialize, Clone, PartialEq)]
 #[allow(non_snake_case)]
@@ -69,6 +68,21 @@ impl FromRow<'_, MySqlRow> for LogStore {
         let total_line: String = row.try_get("total_line")?;
 
         Ok(Self { device_name, os_name, path, name_file, total_line })
+    }
+}
+
+#[derive(Debug)]
+pub enum DateOrDateTime {
+    Date(NaiveDate),
+    DateTime(NaiveDateTime),
+}
+
+impl ToString for DateOrDateTime {
+    fn to_string(&self) -> String {
+        match self {
+            DateOrDateTime::Date(date) => date.to_string(),
+            DateOrDateTime::DateTime(datetime) => datetime.to_string(),
+        }
     }
 }
 
