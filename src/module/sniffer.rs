@@ -165,10 +165,6 @@ impl TaskSniffer {
         name
     }
 
-    // Mode 1 (Syslog).
-    async fn send_syslog(&self) {
-    }
-
     // Mode 0 (FTP).
     #[allow(unused_must_use)]
     async fn send_ftp(&self, name: String) -> Result<(), Box<dyn std::error::Error>> {
@@ -212,6 +208,11 @@ impl TaskSniffer {
         // Return.
         Ok(())
     }
+    
+    // Mode 1 (Syslog).
+    async fn send_syslog(&self) -> Result<(), Box<dyn std::error::Error>> {
+        Ok(())
+    }
 
     pub async fn run(&self) {
         let found = Self::set_interface(self.interface.clone()).await;
@@ -238,12 +239,13 @@ impl TaskSniffer {
                                 let result = Self::create_file(found.ip.clone(), self.directory.to_owned(), line).await;
                                 match self.mode {
                                     0 => match self.send_ftp(result).await {
-                                        Ok(_) => {
-                                            self.set_history().await;
-                                        },
+                                        Ok(_) => self.set_history().await,
                                         Err(err) => println!("{:?}", err),
                                     },
-                                    1 => self.send_syslog().await,
+                                    1 => match self.send_syslog().await {
+                                        Ok(_) => self.set_history().await,
+                                        Err(err) => println!("{:?}", err),
+                                    },
                                     _ => {
                                         println!("[Error] Not found mode its");
                                         exit(1);
