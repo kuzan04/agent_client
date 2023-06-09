@@ -55,7 +55,7 @@ impl Handler {
                     1 => true,
                     0 => false,
                     _ => {
-                        println!("[Error] agent client encountering a problem from database!!!!");
+                        println!("[Error] Agent client encountering a problem from database!!!!");
                         process::exit(1);
                     }
                     // Today 2023.06.4 Web alltra function update not have token.
@@ -193,6 +193,7 @@ impl Handler {
                         std::thread::sleep(std::time::Duration::from_secs(1));
                         drop(stream);
                     }
+                    // let _ = &self.db.close();
                 } else {
                     break;
                 }

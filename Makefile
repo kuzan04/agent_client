@@ -23,4 +23,4 @@ install:
 	cargo install cargo-watch@8.4.0
 
 run:
-	sudo cargo-watch -q -c -w src/ -x run
+	cargo-watch -q -c -w src/ -x run
