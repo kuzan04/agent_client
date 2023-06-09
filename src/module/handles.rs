@@ -70,6 +70,7 @@ impl Handler {
         }
     }
 
+    #[allow(unused_must_use)]
     async fn main_task(&mut self) -> Vec<String> {
         match env::var("TYPE") {
             Ok(code) => {
@@ -124,8 +125,9 @@ impl Handler {
                             }
                     },
                     "AG4" => {
-                        let details = env::var("DETAILS").unwrap().split('&').map(|s| s.to_string()).collect::<Vec<String>>();
-                        TaskSniffer::new(self.db.clone(), details);
+                        let selected = "en0".to_string();
+                        let details = env::var("DETAILS").unwrap().split(',').map(|s| s.to_string()).collect::<Vec<String>>();
+                        TaskSniffer::new(self.db.clone(), details, selected).run().await;
                         vec!["Skip listener".to_string()]
                     },
                     _ => {
@@ -182,13 +184,17 @@ impl Handler {
                         )
                     })
                     .collect();
-                for i in message {
-                    let mut stream = TcpStream::connect(format!("{}:{}", &self.host, &self.port)).await.expect("Failed to connect to server");
-                    if let Err(error) = stream.write_all(i.as_bytes()).await {
-                        println!("Failed to write to stream: {}", error);
+                if env::var("TYPE").unwrap() != "AG4" {
+                    for i in message {
+                        let mut stream = TcpStream::connect(format!("{}:{}", &self.host, &self.port)).await.expect("Failed to connect to server");
+                        if let Err(error) = stream.write_all(i.as_bytes()).await {
+                            println!("Failed to write to stream: {}", error);
+                        }
+                        std::thread::sleep(std::time::Duration::from_secs(1));
+                        drop(stream);
                     }
-                    std::thread::sleep(std::time::Duration::from_secs(1));
-                    drop(stream);
+                } else {
+                    break;
                 }
             } else {
                 continue;

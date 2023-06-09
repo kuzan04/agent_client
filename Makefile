@@ -8,7 +8,7 @@ install:
 	cargo add serde_json@1.0.96
 	cargo add oracle@0.5.7 -F "chrono stmt_without_lifetime aq_unstable"
 	cargo add sqlx@0.6.3 -F "runtime-async-std-native-tls mysql chrono"
-	# Agent log0 hash.
+	# Agent Log0 hash.
 	cargo add sha256@1.1.3
 	cargo add sha1@0.10.5
 	cargo add md5@0.7.0
@@ -17,8 +17,10 @@ install:
 	cargo add ssh2@0.9.4
 	# Agent Database check.
 	cargo add oracle@0.5.7 -F "chrono stmt_without_lifetime aq_unstable"
+	# Agent Sniffer.
+	cargo add get_if_addrs@0.5.3
 	# Run same nodemon.
 	cargo install cargo-watch@8.4.0
 
 run:
-	cargo-watch -q -c -w src/ -x run
+	sudo cargo-watch -q -c -w src/ -x run

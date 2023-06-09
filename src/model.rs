@@ -113,3 +113,16 @@ impl SizeFile {
         Self { name, source, destination }
     }
 }
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct MyInterface {
+    pub ip: String,
+    pub netmask: String,
+    pub broadcast: Option<String>,
+}
+
+impl Default for MyInterface {
+    fn default() -> Self {
+        Self { ip: "NULL".to_string(), netmask: "NULL".to_string(), broadcast: None }
+    }
+}

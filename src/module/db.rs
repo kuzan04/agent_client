@@ -26,7 +26,7 @@ impl DatabaseCheck {
         let user: String = details.remove(0);
         let passwd: String = details.remove(0);
         let db_name: String = details.remove(0);
-        let tables: Vec<String> = details.remove(0).split('&').map(|t| t.to_string()).collect();
+        let tables: Vec<String> = details[details.len()-1..].to_vec();
         Self { connection, _type, host, user, passwd, db_name, tables }
     }
 
