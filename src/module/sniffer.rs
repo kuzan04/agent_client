@@ -1,7 +1,7 @@
 use get_if_addrs::{get_if_addrs, IfAddr::V6, IfAddr::V4};
 use sqlx::{MySqlPool, Row};
-use chrono::Local;
-use async_ftp::FtpStream;
+use chrono::Local; use async_ftp::FtpStream;
+use syslog::{Facility, Formatter3164};
 
 use std::env;
 use std::fs::{
@@ -46,10 +46,17 @@ pub struct TaskSniffer {
 
 impl TaskSniffer {
     pub fn new(connection: MySqlPool, details: Vec<String>, interface: String) -> Self {
-        let host: String = format!("{}:{}", env::var("HOST").unwrap_or_else(|_| "127.0.0.1".to_string()), 21);
         let user: String = "ftpuser".to_string();
         let passwd: String = "ftpuser".to_string();
         let mode: i32 = details[0].parse::<i32>().unwrap_or(-1);
+        let host: String = match mode {
+            0 => format!("{}:{}", env::var("HOST").unwrap_or_else(|_| "127.0.0.1".to_string()), 21),
+            1 => format!("{}:{}", env::var("HOST").unwrap_or_else(|_| "127.0.0.1".to_string()), 514), // Tcp: 601, Udp 514.
+            _ => {
+                println!("[Failed] Unknow mode of sniffer");
+                exit(1);
+            }
+        };
         let directory: String = details[1].to_owned();
         let status = -1;
         Self { connection, interface, host, user, passwd, mode, directory, status }
@@ -210,7 +217,27 @@ impl TaskSniffer {
     }
     
     // Mode 1 (Syslog).
-    async fn send_syslog(&self) -> Result<(), Box<dyn std::error::Error>> {
+    async fn send_syslog(&self, event: String) -> Result<(), Box<dyn std::error::Error>> {
+        // Setup format log.
+        let formatter = Formatter3164 {
+            facility: Facility::LOG_USER,
+            hostname: None,
+            process: "agent_sniffer".into(),
+            pid: 0,
+        };
+
+        // Not sure.
+        match syslog::tcp(formatter, &self.host) { 
+            // syslog::udp(formatter, "127.0.0.1:5051", &self.host)
+            Ok(mut writer) => {
+                writer.info(&event)?;
+            },
+            Err(e) => {
+                println!("Failed to connect to syslog server: {}", e);
+                tokio::time::sleep(std::time::Duration::from_secs(5)).await;
+            }
+        };
+
         Ok(())
     }
 
@@ -236,13 +263,13 @@ impl TaskSniffer {
                             let stdout = dump.stdout.take().unwrap();
                             let reader = BufReader::new(stdout);
                             for line in reader.lines().flatten() {
-                                let result = Self::create_file(found.ip.clone(), self.directory.to_owned(), line).await;
+                                let result = Self::create_file(found.ip.clone(), self.directory.to_owned(), line.clone()).await;
                                 match self.mode {
                                     0 => match self.send_ftp(result).await {
                                         Ok(_) => self.set_history().await,
                                         Err(err) => println!("{:?}", err),
                                     },
-                                    1 => match self.send_syslog().await {
+                                    1 => match self.send_syslog(line).await {
                                         Ok(_) => self.set_history().await,
                                         Err(err) => println!("{:?}", err),
                                     },

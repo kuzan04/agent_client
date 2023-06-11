@@ -19,6 +19,7 @@ install:
 	cargo add oracle@0.5.7 -F "chrono stmt_without_lifetime aq_unstable"
 	# Agent Sniffer.
 	cargo add get_if_addrs@0.5.3
+	cargo add syslog@6.1.0
 	# Run same nodemon.
 	cargo install cargo-watch@8.4.0
 
