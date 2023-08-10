@@ -12,6 +12,9 @@ use std::time::Duration;
 
 use crate::model::LogStore;
 
+// use test
+use crate::module::test::*;
+
 #[derive(Debug)]
 pub struct LogHash {
     device_name: String,
@@ -75,10 +78,14 @@ impl LogHash {
 
     async fn calculate_hash(&mut self, dir:String, file: PathBuf) -> String {
         let line_count = BufReader::new(File::open(file.clone()).unwrap()).lines().count();
-        let res_256= Self::sha256sum(file.clone()).await;
-        let res_md5 = Self::md5sum(file.clone()).await;
-        let res_sha1 = Self::sha1sum(file.clone()).await;
+        // let res_256= Self::sha256sum(file.clone()).await;
+        // let res_md5 = Self::md5sum(file.clone()).await;
+        // let res_sha1 = Self::sha1sum(file.clone()).await;
         let filename = file.file_name().unwrap().to_str().unwrap();
+        // function on test only!!
+        let res_256 = time_function(|| Self::sha256sum(file.clone()), "log0_sha256").await;
+        let res_md5 = time_function(|| Self::md5sum(file.clone()), "log0_md5").await;
+        let res_sha1 = time_function(|| Self::sha1sum(file.clone()), "log0_sha1").await;
         // Example result := 
         // _host_|||_plaform_ _release_|||_.log_|||_number_|||_sha256_|||_md5_|||_sha1_
         format!("{}|||{}|||{}|||{}|||{}|||{}|||{}|||{}",
@@ -144,27 +151,37 @@ impl LogHash {
                         },
                     }
                 }
-                message.push(self.calculate_hash(i.to_string(), dir_path.join(entries[0].as_str())).await);
+                // message.push(self.calculate_hash(i.to_string(), dir_path.join(entries[0].as_str())).await);
+                // function on test only!!
+                message.push(time_function(|| self.calculate_hash(i.to_string(), dir_path.join(entries[0].as_str())), "log0_calculate_hash#1").await);
             } else {
                 for j in &entries {
                     // Setup get lines from file.
                     let read_first = BufReader::new(File::open(dir_path.join(j.clone())).unwrap()).lines().count();
 
                     // Process check file.
-                    if self.check(i.to_string(), j.to_string()).await == -1 {
-                        message.push(self.calculate_hash(i.to_string(), dir_path.join(j)).await);
+                    // if self.check(i.to_string(), j.to_string()).await == -1 {
+                    if time_function(|| self.check(i.to_string(), j.to_string()), "log0_check#1").await == -1 {
+                        // message.push(self.calculate_hash(i.to_string(), dir_path.join(j)).await);
+                        // function on test only!!
+                        message.push(time_function(|| self.calculate_hash(i.to_string(), dir_path.join(entries[0].as_str())), "log0_calculate_hash#2").await);
                     } else {
-                        let backup = self.check(i.to_string(), j.to_string()).await;
-                        println!("Backup = {} : {}", backup as usize, read_first);
+                        // let backup = self.check(i.to_string(), j.to_string()).await;
+                        // function on test only!!
+                        let backup = time_function(|| self.check(i.to_string(), j.to_string()), "log0_check#2").await;
                         match backup as usize != read_first {
                             true => {
-                                message.push(self.calculate_hash(i.to_string(), dir_path.join(j)).await);
+                                // message.push(self.calculate_hash(i.to_string(), dir_path.join(j)).await);
+                                // function on test only!!
+                                message.push(time_function(|| self.calculate_hash(i.to_string(), dir_path.join(j)), "log0_calculate_hash#3").await);
                             },
                             false => {
                                 sleep(Duration::from_secs(2)).await;
                                 let read_second = BufReader::new(File::open(dir_path.join(j.clone())).unwrap()).lines().count();
                                 if read_first < read_second {
-                                    message.push(self.calculate_hash(i.to_string(), dir_path.join(j)).await);
+                                    // message.push(self.calculate_hash(i.to_string(), dir_path.join(j)).await);
+                                    // function on test only!!
+                                    message.push(time_function(|| self.calculate_hash(i.to_string(), dir_path.join(j)), "log0_calculate_hash#4").await);
                                 } else {
                                     continue;
                                 }

@@ -5,6 +5,9 @@ use std::{io, io::Read};
 use std::path::Path;
 use std::fs::{File, read_dir, metadata};
 
+// use test
+use crate::module::test::*;
+
 #[derive(Debug)]
 #[allow(dead_code)]
 pub struct DirectoryFile {
@@ -100,7 +103,9 @@ impl DirectoryFile {
                 };
                 
                 // Result
-                self.ftp_handle(set_name, full_file).await;
+                // self.ftp_handle(set_name, full_file).await;
+                // function on test only!!
+                time_function(|| self.ftp_handle(set_name, full_file), "file_ftp_handle").await;
                 message.push(
                     format!("{}|||{}|||{}|||{}|||{}",
                         self.details[2], // Device_name

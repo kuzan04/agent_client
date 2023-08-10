@@ -5,6 +5,7 @@ use sys_info::{hostname, os_release};
 
 use std::{env, fs};
 use std::process;
+use std::time::Duration;
 
 use crate::model::FilterAgentManage;
 use crate::module::{
@@ -14,13 +15,15 @@ use crate::module::{
     sniffer::TaskSniffer,
 };
 
+// use on test
+use crate::module::test::*;
+
 #[derive(Debug)]
 pub struct Handler {
     pub db: MySqlPool,
     pub host: String,
     pub port: String,
-}
-impl Handler {
+} impl Handler {
     pub fn new(db: MySqlPool, host: String, port: String) -> Handler {
         Handler { db, host, port }
     }
@@ -61,7 +64,6 @@ impl Handler {
                     // Today 2023.06.4 Web alltra function update not have token.
                     // env::set_var("TOKEN", fetch.status);
                 }
-                
             },
             _ => {
                 println!("[Error] Value of status overdue!!!");
@@ -87,42 +89,60 @@ impl Handler {
                 match code.as_str() {
                     "AG1" => {
                         let details = env::var("DETAILS").unwrap().split(',').map(|s| s.to_string()).collect::<Vec<String>>();
-                        match LogHash::new(
-                            hostname,
-                            format!("{} {}", platform, release),
-                            details,
-                            self.db.clone()
-                        ).build().await {
-                                Ok(result) => result,
-                                Err(err) => vec![format!("[Failed] {}", err)],
-                            }
+                        // match LogHash::new(
+                        //     hostname,
+                        //     format!("{} {}", platform, release),
+                        //     details,
+                        //     self.db.clone()
+                        // ).build().await {
+                        //         Ok(result) => result,
+                        //         Err(err) => vec![format!("[Failed] {}", err)],
+                        //     }
+                        // function on test only!!
+                        let mut start = LogHash::new(hostname, format!("{} {}", platform, release), details, self.db.clone());
+                        match time_function(|| start.build(), "log0_start").await {
+                            Ok(result) => result,
+                            Err(err) => vec![format!("[Failed] {}", err)],
+                        }
                     },
                     "AG2" => {
                         let details = env::var("DETAILS").unwrap().split(',').map(|s| s.to_string()).collect::<Vec<String>>();
                         let mix = vec![env::var("TYPE").unwrap(), env::var("NAME").unwrap(), hostname, format!("{}-{}", platform, release)];
-                        match DirectoryFile::new(
-                            mix,
-                            details,
-                            env::var("HOST").unwrap(),
-                            21,
-                            "ftpuser".to_string(),
-                            "ftpuser".to_string(),
-                        ).build().await {
-                                Ok(result) => result,
-                                Err(err) => vec![format!("[Failed] {}", err)]
-                            }
+                        // match DirectoryFile::new(
+                        //     mix,
+                        //     details,
+                        //     env::var("HOST").unwrap(),
+                        //     21,
+                        //     "ftpuser".to_string(),
+                        //     "ftpuser".to_string(),
+                        // ).build().await {
+                        //         Ok(result) => result,
+                        //         Err(err) => vec![format!("[Failed] {}", err)]
+                        //     }
+                        // function on test only!!
+                        let start = DirectoryFile::new(mix, details, env::var("HOST").unwrap(), 21, "ftpuser".to_string(), "ftpuser".to_string());
+                        match time_function(|| start.build(), "file_start").await {
+                            Ok(result) => result,
+                            Err(err) => vec![format!("[Failed] {}", err)]
+                        }
                     },
                     "AG3" => {
                         let mut details = env::var("DETAILS").unwrap().split('&').map(|s| s.to_string()).collect::<Vec<String>>();
                         let db_type = details.remove(0).parse::<i32>().unwrap_or(-1);
-                        match DatabaseCheck::new(
-                            self.db.clone(),
-                            db_type,
-                            details,
-                        ).build().await {
-                                Ok(result) => result,
-                                Err(err) => vec![format!("[Failed] {}", err)],
-                            }
+                        // match DatabaseCheck::new(
+                        //     self.db.clone(),
+                        //     db_type,
+                        //     details,
+                        // ).build().await {
+                        //         Ok(result) => result,
+                        //         Err(err) => vec![format!("[Failed] {}", err)],
+                        //     }
+                        //  function on test only!!
+                        let start = DatabaseCheck::new(self.db.clone(), db_type, details);
+                        match time_function(|| start.build(), "database_start").await {
+                            Ok(result) => result,
+                            Err(err) => vec![format!("[Failed] {}", err)],
+                        }
                     },
                     "AG4" => {
                         let selected = "en0".to_string();
@@ -153,7 +173,9 @@ impl Handler {
                 .map(|row| FilterAgentManage::from_row(&row).unwrap())
                 .collect();
 
-            let result_filter = Self::check(result_manager, env::var("TOKEN").unwrap_or_else(|_| "unknow".to_string()));
+            // let result_filter = Self::check(result_manager, env::var("TOKEN").unwrap_or_else(|_| "unknow".to_string()));
+            // function on test only!!
+            let result_filter = time_function(|| Self::check(result_manager, env::var("TOKEN").unwrap_or_else(|_| "unknow".to_string())), "check");
             let status = match env::var("STATUS").unwrap_or_else(|_| "-1".to_string()).parse::<i32>() {
                 Ok(s) => s,
                 Err(err) => {
@@ -173,8 +195,10 @@ impl Handler {
 
             // Main task if statement check 2 condition is struct (Object) not default
             // and status client start run.
-            if result_filter != FilterAgentManage::default() && Self::set_status(result_filter, reverse_details).await {
-                let message: Vec<String> = self.main_task().await
+            // if result_filter != FilterAgentManage::default() && Self::set_status(result_filter, reverse_details).await {
+            // function on test only!!
+            if result_filter != FilterAgentManage::default() && time_function(|| Self::set_status(result_filter, reverse_details), "set_status").await {
+                let message: Vec<String> = time_function(|| self.main_task(), "main_task").await
                     .into_iter()
                     .map(|msg| {
                         format!("{}#{}|||{}",
@@ -184,6 +208,15 @@ impl Handler {
                         )
                     })
                     .collect();
+                // function on test only!!
+                let (cpu, ram, disk_read, disk_write) = benchmark_env_usage(Duration::from_secs(1));
+                println!(
+                    "Average CPU Usage: {:.2}%, RAM Usage: {:.2} Mb, Disk Read: {:.2} Mb, Disk Write: {:.2} Mb.", 
+                    cpu, 
+                    ram, 
+                    disk_read, 
+                    disk_write
+                );
                 if env::var("TYPE").unwrap() != "AG4" {
                     for i in message {
                         let mut stream = TcpStream::connect(format!("{}:{}", &self.host, &self.port)).await.expect("Failed to connect to server");
@@ -201,9 +234,6 @@ impl Handler {
                 continue;
             }
         }
-        // Separate details to use.
-        // let details = self.details.get("DETAILS").unwrap().split(',').map(|s| s.to_string()).collect::<Vec<String>>();
-
         // drop(stream);
         // let mut buffer = [0; 1024];
         // match stream.read(&mut buffer).await {

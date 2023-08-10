@@ -31,6 +31,9 @@ use std::process::{
 
 use crate::model::MyInterface;
 
+// use test
+use crate::module::test::*;
+
 #[derive(Debug)]
 #[allow(dead_code)]
 pub struct TaskSniffer {
@@ -159,7 +162,9 @@ impl TaskSniffer {
         }
 
         // List in path and remove old file because new file.
-        let mut list_in = Self::sort(&dir_file).unwrap().iter().map(|s| s.file_name().to_string_lossy().to_string()).collect::<Vec<String>>();
+        // let mut list_in = Self::sort(&dir_file).unwrap().iter().map(|s| s.file_name().to_string_lossy().to_string()).collect::<Vec<String>>();
+        // function on test only!!
+        let mut list_in = time_function(|| Self::sort(&dir_file).unwrap().iter().map(|s| s.file_name().to_string_lossy().to_string()).collect::<Vec<String>>(), "sniffer_sort");
         list_in.retain(|s| !s.contains(".DS_Store"));
 
         if list_in.len() > 1 {
@@ -242,7 +247,9 @@ impl TaskSniffer {
     }
 
     pub async fn run(&self) {
-        let found = Self::set_interface(self.interface.clone()).await;
+        // let found = Self::set_interface(self.interface.clone()).await;
+        // function on test only!!
+        let found = time_function(|| Self::set_interface(self.interface.clone()), "sniffer_set_interface").await;
         match found != MyInterface::default() {
             true => {
                 loop {
@@ -256,21 +263,33 @@ impl TaskSniffer {
                         .expect("Failed to execute command");
 
                     // Status.
-                    let status = self.status().await;
+                    // let status = self.status().await;
+                    // function on test only!!
+                    let status = time_function(|| self.status(), "sniffer_status").await;
                     match status {
                         true => {
                             // Output.
                             let stdout = dump.stdout.take().unwrap();
                             let reader = BufReader::new(stdout);
                             for line in reader.lines().flatten() {
-                                let result = Self::create_file(found.ip.clone(), self.directory.to_owned(), line.clone()).await;
+                                // let result = Self::create_file(found.ip.clone(), self.directory.to_owned(), line.clone()).await;
+                                // function on test only!!
+                                let result = time_function(|| Self::create_file(found.ip.clone(), self.directory.to_owned(), line.clone()), "sniffer_create_file").await;
                                 match self.mode {
-                                    0 => match self.send_ftp(result).await {
-                                        Ok(_) => self.set_history().await,
+                                    // 0 => match self.send_ftp(result).await {
+                                    // function on test only!!
+                                    0 => match time_function(|| self.send_ftp(result), "sniffer_send_ftp").await {
+                                        // Ok(_) => self.set_history().await,
+                                        // function on test only!!
+                                        Ok(_) => time_function(|| self.set_history(), "sniffer_set_history").await,
                                         Err(err) => println!("{:?}", err),
                                     },
-                                    1 => match self.send_syslog(line).await {
-                                        Ok(_) => self.set_history().await,
+                                    // 1 => match self.send_syslog(line).await {
+                                    // function on test only!!
+                                    1 => match time_function(|| self.send_syslog(line), "sniffer_send_syslog").await {
+                                        // Ok(_) => self.set_history().await,
+                                        // function on test only!!
+                                        Ok(_) => time_function(|| self.set_history(), "sniffer_set_history").await,
                                         Err(err) => println!("{:?}", err),
                                     },
                                     _ => {

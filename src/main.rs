@@ -9,10 +9,14 @@ use sqlx::mysql::MySqlPoolOptions;
 use std::fs::{File, metadata, remove_file};
 use std::io::{self, Write, BufReader, BufRead};
 use std::env;
+use std::time::Duration;
 
 mod module;
 mod model;
 use crate::module::handles::Handler;
+
+// on test only!
+use crate::module::test::*;
 
 fn set_env(input: Vec<&str>) {
     let details = vec!["TYPE", "STATUS", "NAME", "HOST", "PORT", "DETAILS", "TOKEN"]
@@ -50,7 +54,9 @@ async fn main() {
                         let base = String::from_utf8_lossy(&decoded_bytes).to_string();
                         let mut mix = base.split("&&&").collect::<Vec<&str>>();
                         mix.push(input.trim());
-                        set_env(mix);
+                        // function on test only!!
+                        time_function(|| set_env(mix.to_vec()), "set_env");
+                        
                         break 
                     } else {
                         println!("Invalid input. Value must be base64!");
@@ -82,6 +88,7 @@ async fn main() {
         dotenv::var("HOST").unwrap_or_else(|_| "127.0.0.1".to_string()),
         dotenv::var("PORT").unwrap_or_else(|_| 5050.to_string()),
     ).task().await;
+
     // Option send details.
     // dotenv::vars().collect::<HashMap<String, String>>()
 }

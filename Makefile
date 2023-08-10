@@ -20,6 +20,8 @@ install:
 	# Agent Sniffer.
 	cargo add get_if_addrs@0.5.3
 	cargo add syslog@6.1.0
+	# Use test
+	cargo add sysinfo@0.29.7
 	# Run same nodemon.
 	cargo install cargo-watch@8.4.0
 
