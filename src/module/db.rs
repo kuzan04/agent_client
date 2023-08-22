@@ -54,7 +54,7 @@ impl DatabaseCheck {
                                     result.push(new_value.to_string())
                                 }
                                 "FLOAT" | "DOUBLE" | "DOUBLE PRECISION" | "DECIMAL" | "DEC" => {
-                                    let new_value: u64 = query.get(i.trim());
+                                    let new_value: f64 = query.get(i.trim());
                                     result.push(new_value.to_string())
                                 }
                                 "DATE" | "DATETIME" | "DATE_TIME" | "TIMESTAMP" => {
@@ -88,7 +88,7 @@ impl DatabaseCheck {
                                     result.push(new_value.to_string())
                                 }
                                 "FLOAT" | "DOUBLE" | "DOUBLE PRECISION" | "DECIMAL" | "DEC" => {
-                                    let new_value: u64 = query.get(i).unwrap();
+                                    let new_value: f64 = query.get(i).unwrap();
                                     result.push(new_value.to_string())
                                 }
                                 "DATE" | "DATETIME" | "DATE_TIME" | "TIMESTAMP" => {
