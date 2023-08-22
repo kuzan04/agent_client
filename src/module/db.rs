@@ -1,9 +1,9 @@
 use sqlx::{MySqlPool, Row};
 use oracle::{
-    pool::{PoolBuilder, CloseMode},
-    Error as OracleError
+    pool::{PoolBuilder, CloseMode}, Error as OracleError
 };
 use chrono::{NaiveDate, NaiveDateTime};
+use rust_decimal::prelude::*;
 
 use std::env;
 
@@ -38,7 +38,7 @@ impl DatabaseCheck {
         match query {
             PoolRow::MyRow(query) => {
                 for i in column {
-                    let value: Result<Option<String>, sqlx::Error> = query.try_get(i.trim());
+                    let value = query.try_get(i.trim());
                     match value {
                         Ok(Some(val)) => result.push(val),
                         Ok(None) => result.push("NULL".to_string()),
@@ -52,11 +52,15 @@ impl DatabaseCheck {
                                 "BOOLEAN" | "BOOL" => {
                                     let new_value: bool = query.get(i.trim());
                                     result.push(new_value.to_string())
-                                }
-                                "FLOAT" | "DOUBLE" | "DOUBLE PRECISION" | "DECIMAL" | "DEC" | "BIGINT UNSIGNED" => {
+                                },
+                                "FLOAT" | "DOUBLE" | "DOUBLE PRECISION" | "DEC" => {
                                     let new_value: f64 = query.get(i.trim());
                                     result.push(new_value.to_string())
-                                }
+                                },
+                                "DECIMAL" | "BIGDECIMAL" => {
+                                    let new_value: Decimal = query.get(i.trim());
+                                    result.push(new_value.to_string())
+                                },
                                 "DATE" | "DATETIME" | "DATE_TIME" | "TIMESTAMP" => {
                                     let new_value = match query.try_get::<NaiveDate, _>(i.trim()) {
                                         Ok(date) => DateOrDateTime::Date(date),
@@ -87,7 +91,7 @@ impl DatabaseCheck {
                                     let new_value: bool = query.get(i).unwrap();
                                     result.push(new_value.to_string())
                                 }
-                                "FLOAT" | "DOUBLE" | "DOUBLE PRECISION" | "DECIMAL" | "DEC" | "BIGINT UNSIGNED" => {
+                                "FLOAT" | "DOUBLE" | "DOUBLE PRECISION" | "DECIMAL" | "BIGDECIMAL" | "DEC" => { // not sure
                                     let new_value: f64 = query.get(i).unwrap();
                                     result.push(new_value.to_string())
                                 }

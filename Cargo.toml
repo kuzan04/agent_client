@@ -8,6 +8,7 @@ edition = "2021"
 [dependencies]
 async_ftp = { version = "6.0.0", features = ["secure"] }
 base64 = "0.21.2"
+bigdecimal = { version = "0.4.1", features = ["serde"] }
 cargo-watch = "8.4.0"
 chrono = { version = "0.4.24", features = ["serde"] }
 dotenv = "0.15.0"
@@ -15,11 +16,13 @@ get_if_addrs = "0.5.3"
 md5 = "0.7.0"
 oracle = { version = "0.5.7", features = ["chrono", "stmt_without_lifetime", "aq_unstable"] }
 rpassword = "7.2.0"
+rust_decimal = { version = "1.31", features = ["serde"] }
+rust_decimal_macros = "1.31"
 serde = { version = "1.0.163", features = ["derive"] }
 serde_json = "1.0.96"
 sha1 = "0.10.5"
 sha256 = "1.1.3"
-sqlx = { version = "0.6.3", features = ["runtime-async-std-native-tls", "mysql", "chrono"] }
+sqlx = { version = "0.6.3", features = ["runtime-async-std-native-tls", "mysql", "chrono", "decimal"] }
 ssh2 = "0.9.4"
 sys-info = "0.9.1"
 sysinfo = "0.29.7"
