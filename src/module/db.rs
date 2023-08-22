@@ -53,7 +53,7 @@ impl DatabaseCheck {
                                     let new_value: bool = query.get(i.trim());
                                     result.push(new_value.to_string())
                                 }
-                                "FLOAT" | "DOUBLE" | "DOUBLE PRECISION" | "DECIMAL" | "DEC" => {
+                                "FLOAT" | "DOUBLE" | "DOUBLE PRECISION" | "DECIMAL" | "DEC" | "BIGINT UNSIGNED" => {
                                     let new_value: f64 = query.get(i.trim());
                                     result.push(new_value.to_string())
                                 }
@@ -87,7 +87,7 @@ impl DatabaseCheck {
                                     let new_value: bool = query.get(i).unwrap();
                                     result.push(new_value.to_string())
                                 }
-                                "FLOAT" | "DOUBLE" | "DOUBLE PRECISION" | "DECIMAL" | "DEC" => {
+                                "FLOAT" | "DOUBLE" | "DOUBLE PRECISION" | "DECIMAL" | "DEC" | "BIGINT UNSIGNED" => {
                                     let new_value: f64 = query.get(i).unwrap();
                                     result.push(new_value.to_string())
                                 }
