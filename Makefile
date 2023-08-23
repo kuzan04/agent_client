@@ -16,6 +16,7 @@ install:
 	# Agent Database check.
 	cargo add sqlx@0.6.3 -F "runtime-async-std-native-tls mysql chrono decimal"
 	cargo add oracle@0.5.7 -F "chrono stmt_without_lifetime aq_unstable"
+	cargo add rust_decimal@1.31
 	# Agent Sniffer.
 	cargo add get_if_addrs@0.5.3
 	cargo add syslog@6.1.0
