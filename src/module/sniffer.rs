@@ -152,9 +152,10 @@ impl TaskSniffer {
 
         // Insert to file.
         if metadata(dir_file.clone()).is_ok() {
-            let file = OpenOptions::new().append(true).open(dir_file).unwrap();
-            let mut writer = BufWriter::new(file);
-            writer.write_all(buffer.as_bytes()).unwrap();
+            let mut file = OpenOptions::new().write(true).append(true).open(dir_file).unwrap();
+            // let mut writer = BufWriter::new(file);
+            // writer.write_all(buffer.as_bytes()).unwrap();
+            writeln!(file, "{}", buffer).unwrap();
         }else{
             let file = File::create(dir_file).unwrap();
             let mut writer = BufWriter::new(file);
