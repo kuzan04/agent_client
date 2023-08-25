@@ -365,7 +365,8 @@ impl DatabaseCheck {
                     };
                 },
                 0 => {
-                    match PoolBuilder::new(&self.user, &self.passwd, &format!("//{}:{}/{}", self.host, 1521, self.db_name)).max_connections(10).build() {
+                    // match PoolBuilder::new(&self.user, &self.passwd, &format!("//{}:{}/{}", self.host, 1521, self.db_name)).max_connections(10).build() {
+                    match PoolBuilder::new(&self.user, &self.passwd, &format!("//{}:{}/{}", self.host, 1521, self.db_name)).build() {
                         Ok(pool) => {
                             // let result = format!("{}|||{}", 
                             //     i,

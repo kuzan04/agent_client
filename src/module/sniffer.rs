@@ -152,24 +152,24 @@ impl TaskSniffer {
 
         // Insert to file.
         if metadata(dir_file.clone()).is_ok() {
-            let file = OpenOptions::new().append(true).open(dir_file.clone()).unwrap();
+            let file = OpenOptions::new().append(true).open(dir_file).unwrap();
             let mut writer = BufWriter::new(file);
             writer.write_all(buffer.as_bytes()).unwrap();
         }else{
-            let file = File::create(dir_file.clone()).unwrap();
+            let file = File::create(dir_file).unwrap();
             let mut writer = BufWriter::new(file);
             writer.write_all(buffer.as_bytes()).unwrap();
         }
 
         // List in path and remove old file because new file.
-        // let mut list_in = Self::sort(&dir_file).unwrap().iter().map(|s| s.file_name().to_string_lossy().to_string()).collect::<Vec<String>>();
+        // let mut list_in = Self::sort(&set_directory).unwrap().iter().map(|s| s.file_name().to_string_lossy().to_string()).collect::<Vec<String>>();
         // function on test only!!
-        let mut list_in = time_function(|| Self::sort(&dir_file).unwrap().iter().map(|s| s.file_name().to_string_lossy().to_string()).collect::<Vec<String>>(), "sniffer_sort");
+        let mut list_in = time_function(|| Self::sort(&set_directory).unwrap().iter().map(|s| s.file_name().to_string_lossy().to_string()).collect::<Vec<String>>(), "sniffer_sort");
         list_in.retain(|s| !s.contains(".DS_Store"));
 
         if list_in.len() > 1 {
             for i in list_in.iter().take(list_in.len() - 1) {
-                remove_file(i).unwrap();
+                remove_file(format!("{}{}", set_directory, i)).unwrap();
             }
         }
 

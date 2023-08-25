@@ -35,10 +35,16 @@ impl DirectoryFile {
 
                 let mut ftp_stream = FtpStream::connect(format!("{}:{}", self.ftp_host, self.ftp_port)).await.unwrap();
                 ftp_stream.login(&self.ftp_user, &self.ftp_passwd).await;
-
+                
+                let mut set_name: Vec<&str>;
+                if name.contains('\n') {
+                    set_name = name.split('\n').enumerate().filter(|&(i, _)| i == 1).map(|(_, e)| e).collect::<Vec<&str>>();
+                } else {
+                    set_name = vec![name.as_str()];
+                }
                 // Store (PUT) a file from client to server on root directory.
                 ftp_stream.put(
-                    name.as_str(),
+                    set_name.remove(0),
                     &mut content
                 ).await.unwrap();
 
