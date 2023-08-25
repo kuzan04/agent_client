@@ -193,7 +193,10 @@ impl TaskSniffer {
         // List directory in remote and check same client.
         let mut remote_dir = ftp_stream.list(Some("/")).await?
             .iter()
-            .map(|entry| entry == set_dir)
+            .map(|entry| {
+                let en_len: usize = entry.clone().split_whitespace().map(|e| e.to_string()).collect::<Vec<String>>().len();
+                &entry.split_whitespace().map(|e| e.to_string()).collect::<Vec<String>>()[en_len - 1].to_string() == set_dir
+            })
             .collect::<Vec<bool>>();
         remote_dir.retain(|&b| b);
 
@@ -206,7 +209,8 @@ impl TaskSniffer {
         // (PUT) a file from local to the current working directory of the server.
         // Today (2023-06-10) not check length of file 2 way.
         let mut buffer = Vec::new();
-        File::open(local_file.remove(0)).expect("Failed to open file").read_to_end(&mut buffer).expect("Failed to read file");
+        let full_file = format!("{}{}", self.directory, local_file[0]);
+        File::open(full_file).expect("Failed to open file").read_to_end(&mut buffer).expect("Failed to read file");
         let mut content = Cursor::new(buffer);    
 
         ftp_stream.put(
@@ -317,10 +321,13 @@ impl TaskSniffer {
             .fetch_one(&self.connection)
             .await.unwrap().get(0);
 
-        let query_select = format!("SELECT * FROM TB_TR_PDPA_AGENT_LISTEN_HISTORY GROUP BY agm_id WHERE agm_id = {}", selected.clone());
-        let result_history = sqlx::query(&query_select)
+        let query_select = format!("SELECT * FROM TB_TR_PDPA_AGENT_LISTEN_HISTORY WHERE agm_id = {} GROUP BY agm_id", selected.clone());
+        let result_history = match sqlx::query(&query_select)
             .fetch_one(&self.connection)
-            .await.unwrap();
+            .await {
+                Ok(res) => res.get::<i64, usize>(1).to_string(),
+                Err(_) => "".to_string(),
+            };
 
         match result_history.is_empty() {
             true => sqlx::query(&format!("INSERT INTO TB_TR_PDPA_AGENT_LISTEN_HISTORY (agm_id) VALUE ({})", selected)).execute(&self.connection).await.unwrap(),
