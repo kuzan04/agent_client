@@ -219,6 +219,7 @@ pub struct Handler {
                 );
                 if env::var("TYPE").unwrap() != "AG4" {
                     for i in message {
+                        println!("{}", i.as_bytes().len());
                         let mut stream = TcpStream::connect(format!("{}:{}", &self.host, &self.port)).await.expect("Failed to connect to server");
                         if let Err(error) = stream.write_all(i.as_bytes()).await {
                             println!("Failed to write to stream: {}", error);

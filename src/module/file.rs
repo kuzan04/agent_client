@@ -36,15 +36,13 @@ impl DirectoryFile {
                 let mut ftp_stream = FtpStream::connect(format!("{}:{}", self.ftp_host, self.ftp_port)).await.unwrap();
                 ftp_stream.login(&self.ftp_user, &self.ftp_passwd).await;
                 
-                let mut set_name: Vec<&str>;
-                if name.contains('\n') {
-                    set_name = name.split('\n').enumerate().filter(|&(i, _)| i == 1).map(|(_, e)| e).collect::<Vec<&str>>();
-                } else {
-                    set_name = vec![name.as_str()];
-                }
+                let set_name: Vec<&str> = match name.contains('\n') {
+                    true => name.split('\n').enumerate().filter(|&(i, _)| i == 1).map(|(_, e)| e).collect::<Vec<&str>>(),
+                    false => vec![name.as_str()]
+                };
                 // Store (PUT) a file from client to server on root directory.
                 ftp_stream.put(
-                    set_name.remove(0),
+                    set_name[set_name.len() - 1],
                     &mut content
                 ).await.unwrap();
 
@@ -84,7 +82,7 @@ impl DirectoryFile {
                 self.details[0], // TYPE of client.
                 digits[0..(digits.len() - (i+1).to_string().chars().count())].join(""),
                 (i+1),
-                self.details[1] // NAME of client.
+                self.details[1].split_whitespace().map(|s| s.to_string()).collect::<Vec<String>>().join("_") // NAME of client.
             );
             let mut file: Vec<String> = read_dir(Path::new(&self.directory[i])).unwrap()
                 .into_iter()
@@ -110,8 +108,10 @@ impl DirectoryFile {
                 
                 // Result
                 // self.ftp_handle(set_name, full_file).await;
+                // self.ftp_handle(j.clone, full_file).await;
                 // function on test only!!
-                time_function(|| self.ftp_handle(set_name, full_file), "file_ftp_handle").await;
+                // time_function(|| self.ftp_handle(set_name, full_file), "file_ftp_handle").await;
+                time_function(|| self.ftp_handle(j.clone(), full_file), "file_ftp_handle").await;
                 message.push(
                     format!("{}|||{}|||{}|||{}|||{}",
                         self.details[2], // Device_name
