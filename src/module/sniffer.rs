@@ -280,15 +280,19 @@ impl TaskSniffer {
                             for line in reader.lines().flatten() {
                                 // let result = Self::create_file(found.ip.clone(), self.directory.to_owned(), line.clone()).await;
                                 // function on test only!!
-                                let result = time_function(|| Self::create_file(found.ip.clone(), self.directory.to_owned(), line.clone()), "sniffer_create_file").await;
                                 match self.mode {
                                     // 0 => match self.send_ftp(result).await {
                                     // function on test only!!
-                                    0 => match time_function(|| self.send_ftp(result), "sniffer_send_ftp").await {
-                                        // Ok(_) => self.set_history().await,
-                                        // function on test only!!
-                                        Ok(_) => time_function(|| self.set_history(), "sniffer_set_history").await,
-                                        Err(err) => println!("{:?}", err),
+                                    0 => {
+                                        let result = time_function(|| Self::create_file(found.ip.clone(), self.directory.to_owned(), line.clone()), "sniffer_create_file").await;
+                                        match time_function(|| self.send_ftp(result), "sniffer_send_ftp").await {
+                                            // Ok(_) => self.set_history().await,
+                                            // function on test only!!
+                                            Ok(_) => {
+                                                time_function(|| self.set_history(), "sniffer_set_history").await
+                                            },
+                                            Err(err) => println!("{:?}", err),
+                                        }
                                     },
                                     // 1 => match self.send_syslog(line).await {
                                     // function on test only!!
