@@ -9,14 +9,13 @@ use sqlx::mysql::MySqlPoolOptions;
 use std::fs::{File, metadata, remove_file};
 use std::io::{self, Write, BufReader, BufRead};
 use std::env;
-use std::time::Duration;
 
 mod module;
 mod model;
 use crate::module::handles::Handler;
 
 // on test only!
-use crate::module::test::*;
+// use crate::module::test::*;
 
 fn set_env(input: Vec<&str>) {
     let details = vec!["TYPE", "STATUS", "NAME", "HOST", "PORT", "DETAILS", "TOKEN"]
@@ -55,7 +54,8 @@ async fn main() {
                         let mut mix = base.split("&&&").collect::<Vec<&str>>();
                         mix.push(input.trim());
                         // function on test only!!
-                        time_function(|| set_env(mix.to_vec()), "set_env");
+                        set_env(mix.to_vec());
+                        // time_function(|| set_env(mix.to_vec()), "set_env");
                         
                         break 
                     } else {

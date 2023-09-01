@@ -10,7 +10,7 @@ use std::env;
 use crate::model::{DateOrDateTime, PoolRow, PoolType};
 
 // use test
-use crate::module::test::*;
+// use crate::module::test::*;
 
 #[derive(Debug)]
 pub struct DatabaseCheck {
@@ -131,17 +131,17 @@ impl DatabaseCheck {
 
     async fn statement(&self, main: Vec<Vec<String>>, old: Vec<String>, current: Vec<String>, columns: Vec<String>, from: String, name: String) -> String {
         // Process check
-        // let result_check = Self::check_row(old.clone(), current.clone()).await;
+        let result_check = Self::check_row(old.clone(), current.clone()).await;
         // function on test only!!
-        let result_check = time_function(|| Self::check_row(old.clone(), current.clone()), "database_check_row").await;
+        // let result_check = time_function(|| Self::check_row(old.clone(), current.clone()), "database_check_row").await;
         match result_check {
             Some((res, i)) => {
                 // Check value in row not equal.
                 match res.is_empty() {
                     true => {
-                        // self.last(i, main, current, old, columns, vec![from, name]).await
+                        self.last(i, main, current, old, columns, vec![from, name]).await
                         // function on test only!!
-                        time_function(|| self.last(i, main, current, old, columns, vec![from, name]), "database_last#1").await
+                        // time_function(|| self.last(i, main, current, old, columns, vec![from, name]), "database_last#1").await
                     },
                     false => {
                         // Set Row to Update.
@@ -163,9 +163,9 @@ impl DatabaseCheck {
                                 .await.unwrap();
                         }
 
-                        // self.last(i, main, current, old, columns, vec![from, name]).await
+                        self.last(i, main, current, old, columns, vec![from, name]).await
                         // function on test only!!
-                        time_function(|| self.last(i, main, current, old, columns, vec![from, name]), "database_last#2").await
+                        // time_function(|| self.last(i, main, current, old, columns, vec![from, name]), "database_last#2").await
                     },
                 }
             },
@@ -253,9 +253,9 @@ impl DatabaseCheck {
             PoolType::MyPool(pool) => {
                 result_client = sqlx::query(&query_client).fetch_all(&pool).await.unwrap()
                     .into_iter()
-                    // .map(|row| Self::set_query(self._type, use_column.clone(), PoolRow::MyRow(row)))
+                    .map(|row| Self::set_query(self._type, use_column.clone(), PoolRow::MyRow(row)))
                     // function on test only!!
-                    .map(|row| time_function(|| Self::set_query(self._type, use_column.clone(), PoolRow::MyRow(row)), "database_set_query#mysql"))
+                    // .map(|row| time_function(|| Self::set_query(self._type, use_column.clone(), PoolRow::MyRow(row)), "database_set_query#mysql"))
                     .collect();
             },
             PoolType::OrPool(pool) => {
@@ -263,9 +263,9 @@ impl DatabaseCheck {
                     Ok(conn) => {
                         result_client = conn.query(&query_client, &[]).unwrap()
                             .into_iter()
-                            // .map(|row| Self::set_query(self._type, use_column.clone(), PoolRow::OrRow(row.unwrap())))
+                            .map(|row| Self::set_query(self._type, use_column.clone(), PoolRow::OrRow(row.unwrap())))
                             // function on test only!!
-                            .map(|row| time_function(|| Self::set_query(self._type, use_column.clone(), PoolRow::OrRow(row.unwrap())), "database_set_query#oracle"))
+                            // .map(|row| time_function(|| Self::set_query(self._type, use_column.clone(), PoolRow::OrRow(row.unwrap())), "database_set_query#oracle"))
                             .collect();
                         conn.close().unwrap();
                     },
@@ -298,9 +298,9 @@ impl DatabaseCheck {
                 let new_value: Vec<String> = result_client.clone().into_iter().map(|o| {
                     format!("({})", o.iter().map(|v| format!("\'{}\'", v)).collect::<Vec<String>>().join(","))
                 }).collect();
-                // self.statement(result_main, old_value, new_value, all_columns, from, table).await
+                self.statement(result_main, old_value, new_value, all_columns, from, table).await
                 // function on test only!!
-                time_function(|| self.statement(result_main, old_value, new_value, all_columns, from, table), "database_statement").await
+                // time_function(|| self.statement(result_main, old_value, new_value, all_columns, from, table), "database_statement").await
             }
         }
     }
@@ -331,30 +331,30 @@ impl DatabaseCheck {
                 1 => {
                     match MySqlPool::connect(&format!("mysql://{}:{}@{}:{}/{}", self.user, self.passwd, self.host, 3306, self.db_name)).await {
                         Ok(pool) => {
-                            // let result = format!("{}|||{}", 
-                            //     i,
-                            //     self.manage(PoolType::MyPool(
-                            //         pool.clone()),
-                            //         column_id.to_owned(),
-                            //         from_client.to_owned(),
-                            //         i.to_string(),
-                            //         select_field.to_vec()
-                            //     ).await
-                            // );
-                            // function on test only!!
                             let result = format!("{}|||{}", 
                                 i,
-                                time_function(||
-                                    self.manage(PoolType::MyPool(
-                                        pool.clone()),
-                                        column_id.to_owned(),
-                                        from_client.to_owned(),
-                                        i.to_string(),
-                                        select_field.to_vec()
-                                    ),
-                                    "database_manage#mysql"
+                                self.manage(PoolType::MyPool(
+                                    pool.clone()),
+                                    column_id.to_owned(),
+                                    from_client.to_owned(),
+                                    i.to_string(),
+                                    select_field.to_vec()
                                 ).await
                             );
+                            // function on test only!!
+                            // let result = format!("{}|||{}", 
+                            //     i,
+                            //     time_function(||
+                            //         self.manage(PoolType::MyPool(
+                            //             pool.clone()),
+                            //             column_id.to_owned(),
+                            //             from_client.to_owned(),
+                            //             i.to_string(),
+                            //             select_field.to_vec()
+                            //         ),
+                            //         "database_manage#mysql"
+                            //     ).await
+                            // );
                             pool.close();
                             message.push(result);
                         },
@@ -368,29 +368,29 @@ impl DatabaseCheck {
                     // match PoolBuilder::new(&self.user, &self.passwd, &format!("//{}:{}/{}", self.host, 1521, self.db_name)).max_connections(10).build() {
                     match PoolBuilder::new(&self.user, &self.passwd, &format!("//{}:{}/{}", self.host, 1521, self.db_name)).build() {
                         Ok(pool) => {
-                            // let result = format!("{}|||{}", 
-                            //     i,
-                            //     self.manage(PoolType::OrPool(
-                            //         pool.clone()),
-                            //         column_id.to_owned(),
-                            //         from_client.to_owned(),
-                            //         i.to_string(),
-                            //         select_field.to_vec()
-                            //     ).await
-                            // );
-                            // function on test only!!
-                            let result = format!("{}|||{}",
+                            let result = format!("{}|||{}", 
                                 i,
-                                time_function(|| self.manage(PoolType::OrPool(
+                                self.manage(PoolType::OrPool(
                                     pool.clone()),
                                     column_id.to_owned(),
                                     from_client.to_owned(),
                                     i.to_string(),
                                     select_field.to_vec()
-                                    ),
-                                    "database_manage#oracle"
                                 ).await
                             );
+                            // function on test only!!
+                            // let result = format!("{}|||{}",
+                            //     i,
+                            //     time_function(|| self.manage(PoolType::OrPool(
+                            //         pool.clone()),
+                            //         column_id.to_owned(),
+                            //         from_client.to_owned(),
+                            //         i.to_string(),
+                            //         select_field.to_vec()
+                            //         ),
+                            //         "database_manage#oracle"
+                            //     ).await
+                            // );
                             pool.close(&CloseMode::Default);
                             message.push(result);
                         },

@@ -6,7 +6,7 @@ use std::path::Path;
 use std::fs::{File, read_dir, metadata};
 
 // use test
-use crate::module::test::*;
+// use crate::module::test::*;
 
 #[derive(Debug)]
 #[allow(dead_code)]
@@ -99,7 +99,7 @@ impl DirectoryFile {
             // Process FTP.
             for j in file {
                 // Set varriable to use put file ftp.
-                let set_name = format!("{}{}", inform, j.clone());
+                let _set_name = format!("{}{}", inform, j.clone());
                 let full_file = Path::new(&self.directory[i]).join(j.clone()).to_str().unwrap().to_string();
                 let size = match metadata(full_file.clone()) {
                     Ok(l) => l.len(),
@@ -108,10 +108,10 @@ impl DirectoryFile {
                 
                 // Result
                 // self.ftp_handle(set_name, full_file).await;
-                // self.ftp_handle(j.clone, full_file).await;
+                self.ftp_handle(j.clone(), full_file).await;
                 // function on test only!!
                 // time_function(|| self.ftp_handle(set_name, full_file), "file_ftp_handle").await;
-                time_function(|| self.ftp_handle(j.clone(), full_file), "file_ftp_handle").await;
+                // time_function(|| self.ftp_handle(j.clone(), full_file), "file_ftp_handle").await;
                 message.push(
                     format!("{}|||{}|||{}|||{}|||{}",
                         self.details[2], // Device_name
