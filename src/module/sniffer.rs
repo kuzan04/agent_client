@@ -238,7 +238,7 @@ impl TaskSniffer {
         };
 
         // Not sure.
-        match syslog::tcp(formatter, &self.host) { 
+        match syslog::tcp(formatter, &format!("{}:{}", self.host, "514")) { 
             // syslog::udp(formatter, "127.0.0.1:5051", &self.host)
             Ok(mut writer) => {
                 writer.info(&event)?;
